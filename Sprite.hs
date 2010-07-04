@@ -2,17 +2,17 @@ module Sprite (
     -- * Sprites
     Sprite, mkSprite
   , stepSprite
-  , drawSprite
   ) where
 
 import Animation
 import Graphics
 import Position
+import Render
 
 import qualified Graphics.Rendering.OpenGL.GL as GL
 
 
--- Sprites ---------------------------------------------------------------------
+-- Basic Sprites ---------------------------------------------------------------
 
 data Sprite = Sprite
   { spriteAnimation :: !Animation
@@ -34,20 +34,16 @@ stepSprite s = s
   { spriteAnimation = advance (spriteAnimation s)
   }
 
-drawSprite :: Sprite -> IO ()
-drawSprite s = do
-  setTexture2d (frame (spriteAnimation s))
-  renderPrimitive Quads $ do
-    let r = spriteRect s
-
-    texCoord2d 0 0
-    rectTopLeft r
-
-    texCoord2d 1 0
-    rectTopRight r
-
-    texCoord2d 1 1
-    rectBottomRight r
-
-    texCoord2d 0 1
-    rectBottomLeft r
+instance Render Sprite where
+  render s = do
+    setTexture2d (frame (spriteAnimation s))
+    renderPrimitive Quads $ do
+      let r = spriteRect s
+      texCoord2d 0 0
+      rectTopLeft r
+      texCoord2d 1 0
+      rectTopRight r
+      texCoord2d 1 1
+      rectBottomRight r
+      texCoord2d 0 1
+      rectBottomLeft r
