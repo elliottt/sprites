@@ -21,6 +21,7 @@ main = do
 
         withMatrix $ do
           translate 0 0 (-6)
+          scale 0.5 0.5 0.5
           render at
 
         update

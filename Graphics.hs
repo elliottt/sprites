@@ -9,6 +9,7 @@ module Graphics (
     -- * Matrix Manipulation
   , translate
   , rotate
+  , scale
   , withMatrix
 
     -- * Rendering
@@ -86,6 +87,9 @@ translate x y z = GL.translate (GL.Vector3 x y z)
 
 rotate :: GLfloat -> GLfloat -> GLfloat -> GLfloat -> IO ()
 rotate r x y z = GL.rotate r (GL.Vector3 x y z)
+
+scale :: GLfloat -> GLfloat -> GLfloat -> IO ()
+scale  = GL.scale
 
 withMatrix :: IO a -> IO a
 withMatrix = GL.unsafePreservingMatrix
