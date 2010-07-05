@@ -81,3 +81,7 @@ rectBottomRight r = vertex2d (rectW r) (rectH r)
 
 rectBottomLeft :: Rect -> IO ()
 rectBottomLeft r = vertex2d (rectX r) (rectH r)
+
+isOverlapping :: Rect -> Rect -> Bool
+isOverlapping (Rect x1 y1 w1 h1) (Rect x2 y2 w2 h2) =
+  x1 >= x2 && x1 <= w2 && y1 >= y2 && y1 <= h2
