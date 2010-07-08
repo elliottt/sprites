@@ -31,8 +31,11 @@ moveBy by p = p
 
 data At a = At
   { atPos  :: !Position
-  , atData :: a
+  , atData :: !a
   }
+
+instance Functor At where
+  fmap f at = at { atData = f (atData at) }
 
 instance Render a => Render (At a) where
   render at = withMatrix $ do
@@ -49,6 +52,9 @@ data DynPos a = DynPos
   { dynData :: !a
   , dynPos  :: !(IORef Position)
   }
+
+instance Functor DynPos where
+  fmap f dyn = dyn { dynData = f (dynData dyn) }
 
 instance Render a => Render (DynPos a) where
   render dyn = do
