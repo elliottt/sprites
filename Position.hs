@@ -49,8 +49,8 @@ instance Update a => Update (At a) where
 -- Dynamic Positions -----------------------------------------------------------
 
 data DynPos a = DynPos
-  { dynData :: !a
-  , dynPos  :: !(IORef Position)
+  { dynPos  :: !(IORef Position)
+  , dynData :: !a
   }
 
 instance Functor DynPos where
@@ -66,8 +66,13 @@ instance Render a => Render (DynPos a) where
 instance Update a => Update (DynPos a) where
   update now dyn = update now (dynData dyn)
 
-mkDynPos :: a -> Position -> IO (DynPos a)
-mkDynPos a pos = DynPos a `fmap` newIORef pos
+mkDynPos :: Position -> a -> IO (DynPos a)
+mkDynPos pos a = do
+  ref <- newIORef pos
+  return $! DynPos
+    { dynPos  = ref
+    , dynData = a
+    }
 
 changePos :: (Position -> Position) -> DynPos a -> IO ()
 changePos k dyn = do

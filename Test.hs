@@ -17,12 +17,13 @@ main = do
   let a   = mkAnimation (mkFrames [mkFrame t 1000, mkFrame t2 1000])
       rot = Position 0 0 0.5
   sp  <- mkSprite a 2 2
-  dyn <- mkDynPos sp (Position 1 1 0)
+  dyn <- mkDynPos (Position 0 0 0) =<< mkDynPos (Position 1 1 0) sp
 
   forever $ do
     now <- getTicks
     update now dyn
     changePos (moveBy rot) dyn
+    changePos (moveBy rot) (dynData dyn)
 
     clearScreen
     translate 0 0 (-6)
