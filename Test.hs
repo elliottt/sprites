@@ -14,18 +14,17 @@ main = do
   initGraphics "Test" 800 600
   t  <- loadTexture "test.png"
   t2 <- loadTexture "over9000-6.jpg"
-  let a = mkAnimation (mkFrames [mkFrame t 1000, mkFrame t2 1000])
-  sp <- mkSprite a 2 2
-  let at = At
-        { atPos  = Position 1 1 0
-        , atData = sp
-        }
+  let a   = mkAnimation (mkFrames [mkFrame t 1000, mkFrame t2 1000])
+      rot = Position 0 0 0.5
+  sp  <- mkSprite a 2 2
+  dyn <- mkDynPos sp (Position 1 1 0)
 
   forever $ do
     now <- getTicks
-    update now at
+    update now dyn
+    changePos (moveBy rot) dyn
 
     clearScreen
     translate 0 0 (-6)
-    render at
+    render dyn
     updateScreen

@@ -3,38 +3,10 @@ module Position where
 import Graphics
 import Render
 
-class HasPosition a where
-  getPosition :: a -> Position
-  setPosition :: Position -> a -> a
+import Data.IORef (IORef,newIORef,readIORef,writeIORef)
 
-getX :: HasPosition a => a -> GLfloat
-getX a = posX (getPosition a)
 
-setX :: HasPosition a => GLfloat -> a -> a
-setX x a = setPosition pos' a
-  where
-  pos  = getPosition a
-  pos' = pos { posX = x }
-
-getY :: HasPosition a => a -> GLfloat
-getY a = posY (getPosition a)
-
-setY :: HasPosition a => GLfloat -> a -> a
-setY y a = setPosition pos' a
-  where
-  pos  = getPosition a
-  pos' = pos { posY = y }
-
-getRot :: HasPosition a => a -> GLfloat
-getRot a = posRot (getPosition a)
-
-setRot :: HasPosition a => GLfloat -> a -> a
-setRot r a = setPosition pos' a
-  where
-  r' | r > 360   = r / 360
-     | otherwise = r
-  pos  = getPosition a
-  pos' = pos { posRot = r' }
+-- Positions -------------------------------------------------------------------
 
 data Position = Position
   { posX   :: !GLfloat
@@ -42,33 +14,25 @@ data Position = Position
   , posRot :: !GLfloat
   } deriving (Eq,Show)
 
-instance HasPosition Position where
-  getPosition p   = p
-  setPosition p _ = p
-
 applyPosition :: Position -> IO ()
 applyPosition p = do
   translate (posX p) (posY p) 0
   rotate (posRot p) 0 0 1
 
-moveBy :: HasPosition a => a -> Position -> a
-moveBy a by = setPosition p' a
-  where
-  p  = getPosition a
-  p' = p
-    { posX   = posX p   + posX by
-    , posY   = posY p   + posY by
-    , posRot = posRot p + posRot by
-    }
+moveBy :: Position -> Position -> Position
+moveBy by p = p
+  { posX   = posX p   + posX by
+  , posY   = posY p   + posY by
+  , posRot = posRot p + posRot by
+  }
+
+
+-- Static Positions ------------------------------------------------------------
 
 data At a = At
   { atPos  :: !Position
   , atData :: a
   }
-
-instance HasPosition (At a) where
-  getPosition        = atPos
-  setPosition pos at = at { atPos = pos }
 
 instance Render a => Render (At a) where
   render at = withMatrix $ do
@@ -77,6 +41,36 @@ instance Render a => Render (At a) where
 
 instance Update a => Update (At a) where
   update now at = update now (atData at)
+
+
+-- Dynamic Positions -----------------------------------------------------------
+
+data DynPos a = DynPos
+  { dynData :: !a
+  , dynPos  :: !(IORef Position)
+  }
+
+instance Render a => Render (DynPos a) where
+  render dyn = do
+    pos <- readIORef (dynPos dyn)
+    withMatrix $ do
+      applyPosition pos
+      render (dynData dyn)
+
+instance Update a => Update (DynPos a) where
+  update now dyn = update now (dynData dyn)
+
+mkDynPos :: a -> Position -> IO (DynPos a)
+mkDynPos a pos = DynPos a `fmap` newIORef pos
+
+changePos :: (Position -> Position) -> DynPos a -> IO ()
+changePos k dyn = do
+  let ref = dynPos dyn
+  pos <- readIORef ref
+  writeIORef ref $! k pos
+
+
+-- Rectangles ------------------------------------------------------------------
 
 data Rect = Rect
   { rectX :: !GLfloat
