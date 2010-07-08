@@ -4,32 +4,28 @@ import Graphics
 import Position
 import Render
 import Sprite
+import Time
 
 import Control.Monad (forever)
 
+import qualified Graphics.Rendering.OpenGL.GL as GL
+
 main = do
   initGraphics "Test" 800 600
-  t <- loadTexture "test.png"
-  let a  = mkAnimation (mkFrames [t])
-      sa = At
-        { atData = mkSprite a 2 2
-        , atPos  = Position 1 1 0
+  t  <- loadTexture "test.png"
+  t2 <- loadTexture "over9000-6.jpg"
+  let a = mkAnimation (mkFrames [mkFrame t 1000, mkFrame t2 1000])
+  sp <- mkSprite a 2 2
+  let at = At
+        { atPos  = Position 1 1 0
+        , atData = sp
         }
 
-      loop at p = do
-        clear
+  forever $ do
+    now <- getTicks
+    update now at
 
-        withMatrix $ do
-          translate 0 0 (-6)
-          applyPosition p
-          scale 0.5 0.5 0.5
-          render at
-
-        update
-
-        let at' = setRot ((getRot at) + 0.5) at
-            p'  = setRot (getRot p + 0.5) p
-
-        loop at' p'
-
-  loop sa (Position 0 0 0)
+    clearScreen
+    translate 0 0 (-6)
+    render at
+    updateScreen

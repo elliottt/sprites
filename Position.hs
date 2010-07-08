@@ -31,8 +31,10 @@ getRot a = posRot (getPosition a)
 setRot :: HasPosition a => GLfloat -> a -> a
 setRot r a = setPosition pos' a
   where
+  r' | r > 360   = r / 360
+     | otherwise = r
   pos  = getPosition a
-  pos' = pos { posRot = r }
+  pos' = pos { posRot = r' }
 
 data Position = Position
   { posX   :: !GLfloat
@@ -49,6 +51,16 @@ applyPosition p = do
   translate (posX p) (posY p) 0
   rotate (posRot p) 0 0 1
 
+moveBy :: HasPosition a => a -> Position -> a
+moveBy a by = setPosition p' a
+  where
+  p  = getPosition a
+  p' = p
+    { posX   = posX p   + posX by
+    , posY   = posY p   + posY by
+    , posRot = posRot p + posRot by
+    }
+
 data At a = At
   { atPos  :: !Position
   , atData :: a
@@ -62,6 +74,9 @@ instance Render a => Render (At a) where
   render at = withMatrix $ do
     applyPosition (atPos at)
     render (atData at)
+
+instance Update a => Update (At a) where
+  update now at = update now (atData at)
 
 data Rect = Rect
   { rectX :: !GLfloat

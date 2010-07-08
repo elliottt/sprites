@@ -3,8 +3,8 @@
 module Graphics (
     -- * OpenGL/SDL
     initGraphics
-  , update
-  , clear
+  , updateScreen
+  , clearScreen
 
     -- * Matrix Manipulation
   , translate
@@ -67,15 +67,15 @@ initGraphics t w h = do
 
 
 -- | Swap the GL buffers.
-update :: IO ()
-update  = do
+updateScreen :: IO ()
+updateScreen  = do
   GL.flush
   SDL.glSwapBuffers
   SDL.delay 1
 
 -- | Clear the scene.
-clear :: IO ()
-clear  = do
+clearScreen :: IO ()
+clearScreen  = do
   GL.clear [GL.DepthBuffer, GL.ColorBuffer]
   GL.loadIdentity
 
