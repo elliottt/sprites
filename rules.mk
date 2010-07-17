@@ -1,14 +1,14 @@
 GHC		= ghc -odir=ghc -hidir=ghc -ighc
 HS_SOURCES	= Animation.hs Graphics.hs Position.hs Render.hs \
-		  Sprite.hs Main.hs Time.hs
+		  Sprite.hs Main.hs Time.hs Event.hs
 OBJS		= $(patsubst %.hs,ghc/%.o,$(HS_SOURCES))
-PACKAGES	= $(addprefix -package ,OpenGL SDL SDL-image)
+PACKAGES	= $(addprefix -package ,OpenGL SDL SDL-image stm containers)
 
 .PHONY : all_Test
 all_Test : ghc ghc/depend Test
 
 Test : cbits/sdl-opengl.o $(OBJS)
-	$(GHC) -o Test $(OBJS) cbits/sdl-opengl.o $(PACKAGES)
+	$(GHC) -o $@ $^ $(PACKAGES)
 
 ghc :
 	mkdir ghc

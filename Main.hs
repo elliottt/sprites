@@ -1,12 +1,13 @@
 
 import Animation
+import Event
 import Graphics
 import Position
 import Render
 import Sprite
 import Time
 
-import Control.Monad (forever)
+import System.Exit (exitSuccess)
 
 import qualified Graphics.Rendering.OpenGL.GL as GL
 
@@ -19,13 +20,28 @@ main = do
   sp  <- mkSpriteWidthHeight a 2 2
   dyn <- mkDynPos (Position 0 0 0) =<< mkDynPos (Position 1 1 0) sp
 
-  forever $ do
-    now <- getTicks
-    update now dyn
-    changePos (moveBy rot) dyn
-    changePos (moveBy rot) (dynData dyn)
+  withEventManager $ \em -> do
+    em `listen` \ QuitEvent -> exitSuccess
+    em `listen` \ (TickEvent now delta) -> do
+      update now dyn
+      changePos (moveBy rot) dyn
+      changePos (moveBy rot) (dynData dyn)
 
-    clearScreen
-    translate 0 0 (-6)
-    render dyn
-    updateScreen
+      clearScreen
+      translate 0 0 (-6)
+      render dyn
+      updateScreen
+
+    em `listen` \ (KeyUp sym) -> do
+      putStr "Key up: "
+      print sym
+
+    em `listen` \ (KeyDown sym) -> do
+      putStr "Key down: "
+      print sym
+
+    em `listen` (print :: MouseMotion     -> IO ())
+    em `listen` (print :: MouseButtonUp   -> IO ())
+    em `listen` (print :: MouseButtonDown -> IO ())
+
+    eventLoop em
