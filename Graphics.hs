@@ -13,6 +13,8 @@ module Graphics (
   , withMatrix
 
     -- * Rendering
+  , Point(..)
+  , point
   , vertex2d
 
     -- * Texturing
@@ -96,6 +98,12 @@ withMatrix = GL.unsafePreservingMatrix
 
 
 -- Rendering -------------------------------------------------------------------
+
+data Point = Point !GLfloat !GLfloat
+  deriving Show
+
+point :: Point -> IO ()
+point (Point x y) = vertex2d x y
 
 vertex2d :: GLfloat -> GLfloat -> IO ()
 vertex2d x y = GL.vertex (GL.Vertex2 x y)

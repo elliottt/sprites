@@ -1,8 +1,6 @@
+include rules.mk
+include cbits/rules.mk
 
-all :
-	make -C cbits all
-	ghc --make Test cbits/sdl-opengl.o
+all : all_Test all_cbits
 
-clean :
-	make -C cbits clean
-	$(RM) *.hi *.o Test
+clean : clean_Test clean_cbits

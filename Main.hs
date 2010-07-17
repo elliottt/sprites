@@ -16,7 +16,7 @@ main = do
   t2 <- loadTexture "over9000-6.jpg"
   let a   = mkAnimation (mkFrames [mkFrame t 1000, mkFrame t2 1000])
       rot = Position 0 0 0.5
-  sp  <- mkSprite a 2 2
+  sp  <- mkSpriteWidthHeight a 2 2
   dyn <- mkDynPos (Position 0 0 0) =<< mkDynPos (Position 1 1 0) sp
 
   forever $ do

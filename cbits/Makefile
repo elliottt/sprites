@@ -1,10 +1,5 @@
-CFLAGS	=$(shell sdl-config --cflags) -W
-CC	= gcc
-
-all : sdl-opengl.o
-
-sdl-opengl.o : sdl-opengl.h sdl-opengl.c
-	$(CC) $(CFLAGS) -c sdl-opengl.c -o $@
+all :
+	$(MAKE) -C ../ all_cbits
 
 clean :
-	$(RM) sdl-opengl.o
+	$(MAKE) -C ../ clean_cbits
