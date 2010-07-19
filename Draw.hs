@@ -1,3 +1,4 @@
+module Draw where
 
 import Animation
 import Event
@@ -24,7 +25,8 @@ fileName (nw,ne,sw,se) = "./images/tiles/" ++ map ch [nw,ne,sw,se] ++ ".png"
 -- not animated, for the moment
 loadSprite f =
   do t <- loadTexture f
-     mkSpriteWidthHeight (mkAnimation (mkFrames [mkFrame t 0])) 1 1
+     a <- mkAnimation (mkFrames [mkFrame t 0])
+     return (mkSpriteWidthHeight a 1 1)
 
 loadSpriteDir d =
   do s <- loadSprite (fileName d)

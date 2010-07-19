@@ -1,3 +1,5 @@
 *.hi
 *.o
 ghc
+Test
+Draw

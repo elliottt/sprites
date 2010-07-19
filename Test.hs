@@ -1,3 +1,4 @@
+module Test where
 
 import Animation
 import Event
