@@ -2,11 +2,80 @@ module Dungeon where
 
 import Control.Monad
 import Data.Array.IO
-import Data.Function
 import Data.List
 import System.Random
 
+-- Cell Positions --------------------------------------------------------------
+
+type AbsPos = (Int,Int)
+type RelPos = (Int,Int)
+
+relToAbs :: AbsPos -> RelPos -> AbsPos
+relToAbs (x0,y0) (dx,dy) = (x0 + dx, y0 + dy)
+
+
+-- Dungeons --------------------------------------------------------------------
+
+type Dungeon a = IOArray AbsPos a
+
+type Improve a = (RelPos -> IO a) -> a -> IO a
+
+type Probability a = [(Int,a)]
+
+newDungeon :: a -> (Int,Int) -> Probability a -> IO (Dungeon a)
+newDungeon z dim prob = do
+  let is = ((1,1),dim)
+  d <- newArray is z
+  forM_ (range is) (update d (replace prob))
+  return d
+
+update :: Dungeon a -> (a -> IO a) -> AbsPos -> IO ()
+update arr f pos = writeArray arr pos =<< f =<< readArray arr pos
+
+
+replace :: Probability a -> a -> IO a
+replace prob c = do
+  p <- randomRIO (1,100)
+  return $ maybe c snd $ find ((< p) . fst) prob
+
+pickCell :: Dungeon a -> IO AbsPos
+pickCell d = do
+  (_,(w,h)) <- getBounds d
+  x <- randomRIO (1,w)
+  y <- randomRIO (1,h)
+  return (x,y)
+
+readRel :: a -> Dungeon a -> AbsPos -> RelPos -> IO a
+readRel z d pos rel = do
+  bounds <- getBounds d
+  let a = relToAbs pos rel
+  if inRange bounds a
+     then readArray d a
+     else return z
+
+improveDungeon :: a -> Improve a -> Dungeon a -> IO ()
+improveDungeon c improve d = do
+  pos <- pickCell d
+  update d (improve (readRel c d pos)) pos
+
+improveDungeonMany :: a -> Improve a -> Int -> Dungeon a -> IO ()
+improveDungeonMany c improve i d =
+  replicateM_ i (improveDungeon c improve d)
+
+printDungeon :: (a -> Char) -> Dungeon a -> IO ()
+printDungeon draw d = do
+  cells <- getAssocs d
+  let eqRow ((x1,_),_) ((x2,_),_) = x1 == x2
+      putRow row = putStrLn (map (draw . snd) row)
+  mapM_ putRow (groupBy eqRow cells)
+
+-- -----------------------------------------------------------------------------
+
 data Cell = Land | Sea deriving (Eq,Show)
+
+drawCell :: Cell -> Char
+drawCell Land = '#'
+drawCell Sea  = ' '
 
 opposite :: Cell -> Cell
 opposite Land = Sea
@@ -19,75 +88,12 @@ randomCell  = do
      then return Land
      else return Sea
 
-type Dungeon = IOArray (Int,Int) Cell
-
-newDungeon :: (Int,Int) -> Probability -> IO Dungeon
-newDungeon dim prob = do
-  let is = ((1,1),dim)
-  d <- newArray is Sea
-  forM_ (range is) (update d (replace prob))
-  return d
-
-update :: Dungeon -> (Cell -> IO Cell) -> (Int,Int) -> IO ()
-update arr f pos = writeArray arr pos =<< f =<< readArray arr pos
-
-type Improve = ((Int,Int) -> IO Cell) -> Cell -> IO Cell
-
-type Probability = [(Int,Cell)]
-
-replace :: Probability -> Cell -> IO Cell
-replace prob c = do
-  p <- randomRIO (1,100)
-  return $ maybe c snd $ find ((< p) . fst) prob
-
-pickCell :: Dungeon -> IO (Int,Int)
-pickCell d = do
-  (_,(w,h)) <- getBounds d
-  x <- randomRIO (1,w)
-  y <- randomRIO (1,h)
-  return (x,y)
-
-relToAbs :: AbsPos -> RelPos -> AbsPos
-relToAbs (x0,y0) (dx,dy) = (x0 + dx, y0 + dy)
-
-type RelPos = (Int,Int)
-type AbsPos = (Int,Int)
-
-readRel :: Cell -> Dungeon -> AbsPos -> RelPos -> IO Cell
-readRel z d pos rel = do
-  bounds <- getBounds d
-  let a = relToAbs pos rel
-  if inRange bounds a
-     then readArray d a
-     else return z
-
-improveDungeon :: Cell -> Improve -> Dungeon -> IO ()
-improveDungeon c improve d = do
-  pos <- pickCell d
-  update d (improve (readRel c d pos)) pos
-
-drawCell :: Cell -> Char
-drawCell Land = '#'
-drawCell Sea  = ' '
-
-improveDungeonMany :: Cell -> Improve -> Int -> Dungeon -> IO ()
-improveDungeonMany c improve i d =
-  replicateM_ i (improveDungeon c improve d)
-
-printDungeon :: Dungeon -> IO ()
-printDungeon d = do
-  cells <- getAssocs d
-  let rows = map (map (drawCell . snd)) (groupBy ((==) `on` (fst.fst)) cells)
-  mapM_ putStrLn rows
-
--- -----------------------------------------------------------------------------
-
 binaryCell :: [(Int,Cell)]
 binaryCell  = [(50,Land)]
 
 type Threshold = Int
 
-improveTest :: Threshold -> Improve
+improveTest :: Threshold -> Improve Cell
 improveTest n readCell c = do
   ns <- neighbors readCell
   let lands = length (filter (== Land) ns)
@@ -97,15 +103,15 @@ improveTest n readCell c = do
     Sea  | lands <= n -> return Sea
          | otherwise  -> return Land
 
-improveTrivial :: Improve
+improveTrivial :: Improve Cell
 improveTrivial _ c = return c
 
 neighbors :: (RelPos -> IO Cell) -> IO [Cell]
 neighbors readCell = mapM readCell
                    $ filter (/= (0,0)) [ (x,y) | x <- [-1..1], y <- [-1..1] ]
 
-testDungeon :: (Int,Int) -> Improve -> Int -> IO ()
+testDungeon :: (Int,Int) -> Improve Cell -> Int -> IO ()
 testDungeon dim imp i = do
-  d <- newDungeon dim binaryCell
+  d <- newDungeon Sea dim binaryCell
   improveDungeonMany Sea imp i d
-  printDungeon d
+  printDungeon drawCell d
