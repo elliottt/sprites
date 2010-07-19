@@ -15,15 +15,16 @@ main = do
   initGraphics "Test" 800 600
   t  <- loadTexture "test.png"
   t2 <- loadTexture "over9000-6.jpg"
-  let a   = mkAnimation (mkFrames [mkFrame t 1000, mkFrame t2 1000])
-      rot = Position 0 0 0.5
-  sp  <- mkSpriteWidthHeight a 2 2
+  a  <- mkAnimation (mkFrames [mkFrame t 1000, mkFrame t2 1000])
+  let rot = Position 0 0 0.5
+  let sp  = mkSpriteWidthHeight a 2 2
   dyn <- mkDynPos (Position 0 0 0) =<< mkDynPos (Position 1 1 0) sp
 
   withEventManager $ \em -> do
     em `listen` \ QuitEvent -> exitSuccess
     em `listen` \ (TickEvent now delta) -> do
-      update now dyn
+      update now a
+
       changePos (moveBy rot) dyn
       changePos (moveBy rot) (dynData dyn)
 

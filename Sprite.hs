@@ -43,7 +43,7 @@ isOverlapping (Rect x1 y1 w1 h1) (Rect x2 y2 w2 h2) =
 -- Basic Sprites ---------------------------------------------------------------
 
 data Sprite = Sprite
-  { spriteAnimation :: IORef Animation
+  { spriteAnimation :: !Animation
   , spriteTL        :: !Point
   , spriteTR        :: !Point
   , spriteBR        :: !Point
@@ -52,24 +52,22 @@ data Sprite = Sprite
 
 -- | Primitive sprite constructor.  Using this doesn't guarantee that the sprite
 -- will end up as a rectangle.
-mkSprite :: Animation -> Point -> Point -> Point -> Point -> IO Sprite
-mkSprite a tl tr br bl = do
-  ref <- newIORef a
-  return $! Sprite
-    { spriteAnimation = ref
-    , spriteTL        = tl
-    , spriteTR        = tr
-    , spriteBR        = br
-    , spriteBL        = bl
-    }
+mkSprite :: Animation -> Point -> Point -> Point -> Point -> Sprite
+mkSprite a tl tr br bl = Sprite
+  { spriteAnimation = a
+  , spriteTL        = tl
+  , spriteTR        = tr
+  , spriteBR        = br
+  , spriteBL        = bl
+  }
 
 -- | Make a sprite using a rectangle.
-mkSpriteRect :: Animation -> Rect -> IO Sprite
+mkSpriteRect :: Animation -> Rect -> Sprite
 mkSpriteRect a r = mkSprite a (rectTopLeft     r) (rectTopRight   r)
                               (rectBottomRight r) (rectBottomLeft r)
 
 -- | Make a sprite using its width and height.
-mkSpriteWidthHeight :: Animation -> GLfloat -> GLfloat -> IO Sprite
+mkSpriteWidthHeight :: Animation -> GLfloat -> GLfloat -> Sprite
 mkSpriteWidthHeight a w h = mkSpriteRect a r
   where
   w2 = w / 2
@@ -78,8 +76,7 @@ mkSpriteWidthHeight a w h = mkSpriteRect a r
 
 instance Render Sprite where
   render s = do
-    a <- readIORef (spriteAnimation s)
-    applyFrame (frame a)
+    applyFrame =<< frame (spriteAnimation s)
     renderPrimitive Quads $ do
       texCoord2d 0 0
       point (spriteTL s)
@@ -91,7 +88,4 @@ instance Render Sprite where
       point (spriteBL s)
 
 instance Update Sprite where
-  update now s = do
-    let ref = spriteAnimation s
-    a <- readIORef ref
-    writeIORef ref $! stepAnimation now a
+  update now s = update now (spriteAnimation s)

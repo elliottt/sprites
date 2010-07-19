@@ -1,7 +1,6 @@
 module Animation (
     -- * Animations
     Animation, mkAnimation
-  , stepAnimation
   , reset
   , advance
   , seek
@@ -14,9 +13,12 @@ module Animation (
   ) where
 
 import Graphics
+import Render
 import Time
 
+import Control.Monad (when)
 import Data.Array (Array,listArray,(!))
+import Data.IORef (IORef,newIORef,readIORef,writeIORef)
 import qualified Graphics.Rendering.OpenGL.GL as GL
 
 
@@ -24,49 +26,60 @@ import qualified Graphics.Rendering.OpenGL.GL as GL
 
 data Animation = Animation
   { animationFrames     :: !Frames
-  , animationPosition   :: !Int
-  , animationNextUpdate :: Time
+  , animationPosition   :: IORef (Int,Time)
   }
 
-mkAnimation :: Frames -> Animation
-mkAnimation fs = a
-  where
-  a = Animation
+mkAnimation :: Frames -> IO Animation
+mkAnimation fs = do
+  ref <- newIORef (0,0)
+  return Animation
     { animationFrames     = fs
-    , animationPosition   = 0
-    , animationNextUpdate = frameDelay (frame a)
+    , animationPosition   = ref
     }
 
-stepAnimation :: Time -> Animation -> Animation
-stepAnimation now a
-  | now > animationNextUpdate a = a'
-  | otherwise                   = a
-  where
-  a' = (advance a)
-    { animationNextUpdate = addInterval (frameDelay (frame a')) now
-    }
+instance Update Animation where
+  update now a = do
+    let ref = animationPosition a
+    (p,next) <- readIORef ref
+    when (now > next) $ do
+      let fs  = animationFrames a
+          len = frameLength (animationFrames a)
+          p'  = (p + 1) `rem` len
+          f   = frameFrames fs ! p'
+      writeIORef ref (p',now + frameDelay f)
 
-reset :: Animation -> Animation
-reset a = a { animationPosition = 0 }
+-- | Reset the frame position
+reset :: Animation -> IO ()
+reset a = do
+  let ref = animationPosition a
+  (p,next) <- readIORef ref
+  writeIORef ref (0,next)
 
-advance :: Animation -> Animation
-advance a | len <= 1  = a
-          | otherwise = a { animationPosition = pos' }
+-- | Advance the frame position by one.
+advance :: Animation -> IO ()
+advance a | len <= 1  = return ()
+          | otherwise = update
   where
-  len  = frameLength (animationFrames a)
-  pos' = (animationPosition a + 1) `rem` len
+  len    = frameLength (animationFrames a)
+  update = do
+    let ref = animationPosition a
+    (p,next) <- readIORef ref
+    writeIORef ref ((p + 1) `rem` len, next)
 
-seek :: Animation -> Int -> Maybe Animation
-seek a i | i < frameLength fs = Just (a { animationPosition = i })
-         | otherwise          = Nothing
-  where
-  fs = animationFrames a
+seek :: Animation -> Int -> IO ()
+seek a i = do
+  let ref = animationPosition a
+  (p,next) <- readIORef ref
+  let fs = animationFrames a
+  let i' | i < frameLength fs = i
+         | otherwise          = p
+  writeIORef ref (i',next)
 
-frame :: Animation -> Frame
-frame a = frameFrames fs ! pos
-  where
-  fs  = animationFrames a
-  pos = animationPosition a
+frame :: Animation -> IO Frame
+frame a = do
+  let fs  = animationFrames a
+  (p,_) <- readIORef (animationPosition a)
+  return (frameFrames fs ! p)
 
 
 -- Frames ----------------------------------------------------------------------
