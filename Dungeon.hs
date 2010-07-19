@@ -71,11 +71,11 @@ printDungeon draw d = do
 
 -- -----------------------------------------------------------------------------
 
-data Cell = Land | Sea deriving (Eq,Show)
+data Cell = Land | Sea deriving (Eq,Ord,Show)
 
-drawCell :: Cell -> Char
-drawCell Land = '#'
-drawCell Sea  = ' '
+printCell :: Cell -> Char
+printCell Land = '#'
+printCell Sea  = ' '
 
 opposite :: Cell -> Cell
 opposite Land = Sea
@@ -114,4 +114,4 @@ testDungeon :: (Int,Int) -> Improve Cell -> Int -> IO ()
 testDungeon dim imp i = do
   d <- newDungeon Sea dim binaryCell
   improveDungeonMany Sea imp i d
-  printDungeon drawCell d
+  printDungeon printCell d
