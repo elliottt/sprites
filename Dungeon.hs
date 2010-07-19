@@ -1,4 +1,8 @@
+{-# LANGUAGE TypeSynonymInstances #-}
+
 module Dungeon where
+
+import Render hiding (update)
 
 import Control.Monad
 import Data.Array.IO
@@ -18,9 +22,11 @@ relToAbs (x0,y0) (dx,dy) = (x0 + dx, y0 + dy)
 
 type Dungeon a = IOArray AbsPos a
 
-type Improve a = (RelPos -> IO a) -> a -> IO a
+type Improve a = Lookup a -> a -> IO a
 
 type Probability a = [(Int,a)]
+
+type Lookup a = RelPos -> IO a
 
 newDungeon :: a -> (Int,Int) -> Probability a -> IO (Dungeon a)
 newDungeon z dim prob = do
@@ -31,7 +37,6 @@ newDungeon z dim prob = do
 
 update :: Dungeon a -> (a -> IO a) -> AbsPos -> IO ()
 update arr f pos = writeArray arr pos =<< f =<< readArray arr pos
-
 
 replace :: Probability a -> a -> IO a
 replace prob c = do
@@ -45,7 +50,7 @@ pickCell d = do
   y <- randomRIO (1,h)
   return (x,y)
 
-readRel :: a -> Dungeon a -> AbsPos -> RelPos -> IO a
+readRel :: a -> Dungeon a -> AbsPos -> Lookup a
 readRel z d pos rel = do
   bounds <- getBounds d
   let a = relToAbs pos rel
@@ -69,7 +74,20 @@ printDungeon draw d = do
       putRow row = putStrLn (map (draw . snd) row)
   mapM_ putRow (groupBy eqRow cells)
 
--- -----------------------------------------------------------------------------
+mapDungeon :: a -> (Lookup a -> AbsPos -> a -> IO b) -> Dungeon a
+           -> IO (Dungeon b)
+mapDungeon z step d = do
+  bounds <- getBounds d
+  arr    <- newArray_ bounds
+  forM_ (range bounds) $ \ ix ->
+    writeArray arr ix =<< step (readRel z d ix) ix =<< readArray d ix
+  return arr
+
+instance Render a => Render (Dungeon a) where
+  render d = mapM_ render =<< getElems d
+
+
+-- Example ---------------------------------------------------------------------
 
 data Cell = Land | Sea deriving (Eq,Show)
 

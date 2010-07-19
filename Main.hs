@@ -1,6 +1,7 @@
 
 import Animation
 import Event
+import Dungeon
 import Graphics
 import Position
 import Render
@@ -13,36 +14,49 @@ import qualified Graphics.Rendering.OpenGL.GL as GL
 
 main = do
   initGraphics "Test" 800 600
-  t  <- loadTexture "test.png"
-  t2 <- loadTexture "over9000-6.jpg"
-  a  <- mkAnimation (mkFrames [mkFrame t 1000, mkFrame t2 1000])
-  let rot = Position 0 0 0.5
-  let sp  = mkSpriteWidthHeight a 2 2
-  dyn <- mkDynPos (Position 0 0 0) =<< mkDynPos (Position 1 1 0) sp
+  land  <- loadTexture "land.png"
+  water <- loadTexture "water.png"
+
+  landA  <- mkAnimation (mkFrames [mkFrame land  0])
+  waterA <- mkAnimation (mkFrames [mkFrame water 0])
+  let landSp  = mkSpriteWidthHeight landA  0.1 0.1
+      waterSp = mkSpriteWidthHeight waterA 0.1 0.1
+
+  d <- newDungeon Sea (50,50) binaryCell
+  improveDungeonMany Sea (improveTest 4) 6000 d
+
+  let mkTile _ (x,y) c = do
+        let pos d = At
+              { atData = d
+              , atPos  = Position (fromIntegral x * 0.1)
+                                  (fromIntegral y * 0.1)
+                                  0
+              }
+        case c of
+          Land -> return (pos landSp)
+          Sea  -> return (pos waterSp)
+
+  d' <- mapDungeon Sea mkTile d
+
+  view <- mkDynPos (Position (-2.5) (-2.5) 0) ()
 
   withEventManager $ \em -> do
     em `listen` \ QuitEvent -> exitSuccess
+
     em `listen` \ (TickEvent now delta) -> do
-      update now a
-
-      changePos (moveBy rot) dyn
-      changePos (moveBy rot) (dynData dyn)
-
       clearScreen
-      translate 0 0 (-6)
-      render dyn
+      translate 0 0 (-4)
+      applyPosition =<< getDynPos view
+      render d'
       updateScreen
 
-    em `listen` \ (KeyUp sym) -> do
-      putStr "Key up: "
-      print sym
-
     em `listen` \ (KeyDown sym) -> do
-      putStr "Key down: "
-      print sym
-
-    em `listen` (print :: MouseMotion     -> IO ())
-    em `listen` (print :: MouseButtonUp   -> IO ())
-    em `listen` (print :: MouseButtonDown -> IO ())
+      case symKey sym of
+        SDLK_UP     -> changePos (incrY (-0.1)) view
+        SDLK_DOWN   -> changePos (incrY   0.1)  view
+        SDLK_LEFT   -> changePos (incrX   0.1)  view
+        SDLK_RIGHT  -> changePos (incrX (-0.1)) view
+        SDLK_ESCAPE -> exitSuccess
+        _           -> return ()
 
     eventLoop em

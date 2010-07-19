@@ -26,6 +26,12 @@ moveBy by p = p
   , posRot = posRot p + posRot by
   }
 
+incrX :: GLfloat -> Position -> Position
+incrX x p = p { posX = posX p + x }
+
+incrY :: GLfloat -> Position -> Position
+incrY y p = p { posY = posY p + y }
+
 
 -- Static Positions ------------------------------------------------------------
 
@@ -79,3 +85,6 @@ changePos k dyn = do
   let ref = dynPos dyn
   pos <- readIORef ref
   writeIORef ref $! k pos
+
+getDynPos :: DynPos a -> IO Position
+getDynPos dyn = readIORef (dynPos dyn)

@@ -1,6 +1,6 @@
 GHC		= ghc -odir=ghc -hidir=ghc -ighc
 HS_SOURCES	= Animation.hs Graphics.hs Position.hs Render.hs \
-		  Sprite.hs Main.hs Time.hs Event.hs
+		  Sprite.hs Main.hs Time.hs Event.hs Dungeon.hs
 OBJS		= $(patsubst %.hs,ghc/%.o,$(HS_SOURCES))
 PACKAGES	= $(addprefix -package ,OpenGL SDL SDL-image stm containers)
 
