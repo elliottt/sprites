@@ -8,7 +8,7 @@ else
 	QUIET_DEPEND	= @echo '   DEPEND';
 endif
 
-GHC		= ghc -odir=ghc -hidir=ghc -ighc
+GHC		= ghc -odir=ghc -hidir=ghc -ighc -Wall
 HS_SOURCES	= Animation.hs Graphics.hs Position.hs Render.hs \
 		  Sprite.hs Time.hs Event.hs Dungeon.hs
 TARGETS		= Test Draw
@@ -22,7 +22,8 @@ Test : cbits/sdl-opengl.o $(OBJS) ghc/Test.o
 	$(QUIET_LINK)$(GHC) -o $@ $^ $(PACKAGES)
 
 Draw : cbits/sdl-opengl.o $(OBJS) ghc/Draw.o
-	$(QUIET_LINK)$(GHC) -main-is Draw -o $@  ghc/Draw.o cbits/sdl-opengl.o $(OBJS) $(PACKAGES)
+	$(QUIET_LINK)$(GHC) -main-is Draw -o $@  ghc/Draw.o cbits/sdl-opengl.o \
+		$(OBJS) $(PACKAGES)
 
 ghc :
 	mkdir ghc
