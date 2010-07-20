@@ -4,7 +4,7 @@ else
 	QUIET_CC	= @echo '   CC   $@';
 endif
 
-CFLAGS	=$(shell sdl-config --cflags) -W
+CFLAGS	=$(shell sdl-config --cflags) -Wall
 CC	= gcc
 
 all_cbits : cbits/sdl-opengl.o

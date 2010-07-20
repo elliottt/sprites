@@ -15,13 +15,11 @@ import qualified Graphics.Rendering.OpenGL.GL as GL
 
 main = do
   initGraphics "Test" 800 600
-  land  <- loadTexture "land.png"
-  water <- loadTexture "water.png"
+  land  <- mkAnimationFromFile "land.anim"
+  water <- mkAnimationFromFile "water.anim"
 
-  landA  <- mkAnimation (mkFrames [mkFrame land  0])
-  waterA <- mkAnimation (mkFrames [mkFrame water 0])
-  let landSp  = mkSpriteWidthHeight landA  0.1 0.1
-      waterSp = mkSpriteWidthHeight waterA 0.1 0.1
+  let landSp  = mkSpriteWidthHeight land  0.1 0.1
+      waterSp = mkSpriteWidthHeight water 0.1 0.1
 
   d <- newDungeon Sea (50,50) binaryCell
   improveDungeonMany Sea (improveTest 4) 6000 d

@@ -13,7 +13,8 @@ HS_SOURCES	= Animation.hs Graphics.hs Position.hs Render.hs \
 		  Sprite.hs Time.hs Event.hs Dungeon.hs
 TARGETS		= Test Draw
 OBJS		= $(patsubst %.hs,ghc/%.o,$(HS_SOURCES))
-PACKAGES	= $(addprefix -package ,OpenGL SDL SDL-image stm containers)
+PACKAGES	= $(addprefix -package ,OpenGL SDL SDL-image \
+		                        stm containers json)
 
 .PHONY : all_Test
 all_Test : ghc ghc/depend Test Draw
