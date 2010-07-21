@@ -14,32 +14,6 @@ import Data.IORef (newIORef,IORef,readIORef,writeIORef)
 import qualified Graphics.Rendering.OpenGL.GL as GL
 
 
--- Rectangles ------------------------------------------------------------------
-
-data Rect = Rect
-  { rectX :: !GLfloat
-  , rectY :: !GLfloat
-  , rectW :: !GLfloat
-  , rectH :: !GLfloat
-  } deriving (Eq,Show)
-
-rectTopLeft :: Rect -> Point
-rectTopLeft r = Point (rectX r) (rectY r)
-
-rectTopRight :: Rect -> Point
-rectTopRight r = Point (rectW r) (rectY r)
-
-rectBottomRight :: Rect -> Point
-rectBottomRight r = Point (rectW r) (rectH r)
-
-rectBottomLeft :: Rect -> Point
-rectBottomLeft r = Point (rectX r) (rectH r)
-
-isOverlapping :: Rect -> Rect -> Bool
-isOverlapping (Rect x1 y1 w1 h1) (Rect x2 y2 w2 h2) =
-  x1 >= x2 && x1 <= w2 && y1 >= y2 && y1 <= h2
-
-
 -- Basic Sprites ---------------------------------------------------------------
 
 data Sprite = Sprite

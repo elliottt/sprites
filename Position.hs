@@ -88,3 +88,52 @@ changePos k dyn = do
 
 getDynPos :: DynPos a -> IO Position
 getDynPos dyn = readIORef (dynPos dyn)
+
+
+-- Rectangles ------------------------------------------------------------------
+
+data Rect = Rect
+  { rectX :: !GLfloat
+  , rectY :: !GLfloat
+  , rectW :: !GLfloat
+  , rectH :: !GLfloat
+  } deriving (Eq,Show)
+
+rectTopLeft :: Rect -> Point
+rectTopLeft r = Point (rectX r) (rectY r)
+
+rectTopRight :: Rect -> Point
+rectTopRight r = Point (rectW r) (rectY r)
+
+rectBottomRight :: Rect -> Point
+rectBottomRight r = Point (rectW r) (rectH r)
+
+rectBottomLeft :: Rect -> Point
+rectBottomLeft r = Point (rectX r) (rectH r)
+
+rectQuads :: Rect -> (Rect,Rect,Rect,Rect)
+rectQuads (Rect x y w h) =
+  ( Rect x  y  w2 h2
+  , Rect w2 y  w2 h2
+  , Rect w2 h2 w2 h2
+  , Rect x  h2 w2 h2 )
+  where
+  w2 = w / 2
+  h2 = h / 2
+
+bottomRight :: Rect -> (GLfloat,GLfloat)
+bottomRight (Rect x y w h) = (x + w, y - h)
+
+isOverlapping :: Rect -> Rect -> Bool
+isOverlapping r1@(Rect x1 y1 _ _) r2@(Rect x2 y2 _ _) =
+  not (x1 > w2 || x2 > w1 || y1 < h2 || y2 < h1)
+  where
+  (w1,h1) = bottomRight r1
+  (w2,h2) = bottomRight r2
+
+isWithin :: Position -> Rect -> Bool
+isWithin (Position x1 y1 _) (Rect x2 y2 w2 h2) =
+  x1 >= x2 && x1 <= r && y1 >= b && y1 <= y2
+  where
+  r = x2 + w2
+  b = y2 - h2
