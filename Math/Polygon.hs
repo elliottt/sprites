@@ -9,8 +9,6 @@ import Control.Monad (guard,msum)
 import Data.Maybe (catMaybes)
 import Graphics.Rendering.OpenGL.GL (GLfloat)
 
-import Debug.Trace
-
 
 data Polygon = Polygon
   { polyPoints :: [Point]
@@ -58,7 +56,7 @@ polyEdges poly = zipWith step ps (drop 1 (cycle ps))
 data Collision = Collision deriving Show
 
 radiusOverlap :: Polygon -> Polygon -> Bool
-radiusOverlap p1 p2 = r1 + r2 >= d
+radiusOverlap p1 p2 = r1 + r2 <= d
   where
   d  = distance (polyCenter p1) (polyCenter p2)
   r1 = polyRadius p1
