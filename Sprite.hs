@@ -2,6 +2,7 @@ module Sprite (
     -- * Sprites
     Sprite
   , mkSprite, mkSpriteRect, mkSpriteWidthHeight
+  , spriteTL, spriteBR
   ) where
 
 import Animation

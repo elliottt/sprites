@@ -83,6 +83,15 @@ mapDungeon z step d = do
     writeArray arr ix =<< step (readRel z d ix) ix =<< readArray d ix
   return arr
 
+foldDungeon :: a -> (Lookup a -> AbsPos -> b -> a -> IO b) -> b
+            -> Dungeon a -> IO b
+foldDungeon z f b0 d = do
+  bounds <- getBounds d
+  let step b ix = do
+        a  <- readArray d ix
+        f (readRel z d ix) ix b a
+  foldM step b0 (range bounds)
+
 instance Render a => Render (Dungeon a) where
   render d = mapM_ render =<< getElems d
 

@@ -3,6 +3,7 @@
 module QuadTree where
 
 import Position
+import Render
 
 import Control.Applicative (Applicative(..),Alternative(..),(<$>))
 import Control.Monad (guard)
@@ -55,3 +56,7 @@ viewable r t =
       [ a | a <- as, r `isOverlapping` getBounds a ]
 
     _ -> []
+
+instance (Render a, HasBounds a) => Render (QuadTree a) where
+  render qt = do
+    mapM_ render (viewable (Rect 0 1 1 1) qt)

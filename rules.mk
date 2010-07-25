@@ -10,7 +10,8 @@ endif
 
 GHC		= ghc -odir=ghc -hidir=ghc -ighc -Wall
 HS_SOURCES	= Animation.hs Graphics.hs Position.hs Render.hs \
-		  Sprite.hs Time.hs Event.hs Dungeon.hs
+		  Sprite.hs Time.hs Event.hs Dungeon.hs QuadTree.hs \
+		  Math/Point.hs Math/Line.hs Math/Polygon.hs Math/Matrix.hs
 TARGETS		= Test Draw
 OBJS		= $(patsubst %.hs,ghc/%.o,$(HS_SOURCES))
 PACKAGES	= $(addprefix -package ,OpenGL SDL SDL-image \
