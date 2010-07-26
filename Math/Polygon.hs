@@ -26,12 +26,14 @@ instance Normalize Polygon where
     origin = Point 0 0
     ps     = normalize (polyPoints poly)
 
+-- | Apply a transformation matrix to all of the points in the polygon.
 transformPolygon :: Matrix -> Polygon -> Polygon
 transformPolygon m p = p
-  { polyPoints = map (mulPoint m) (polyPoints p)
-  , polyCenter = mulPoint m (polyCenter p)
+  { polyPoints = map (transformPoint m) (polyPoints p)
+  , polyCenter = transformPoint m (polyCenter p)
   }
 
+-- | Make a polygon, centered at the origin.
 rectangle :: GLfloat -> GLfloat -> Polygon
 rectangle w h = Polygon
   { polyPoints =
@@ -47,21 +49,22 @@ rectangle w h = Polygon
   w2 = w / 2
   h2 = h / 2
 
+-- | Get the edges of the polygon.
 polyEdges :: Polygon -> [Line]
 polyEdges poly = zipWith step ps (drop 1 (cycle ps))
   where
   ps         = polyPoints poly
   step p1 p2 = Line p1 p2
 
-data Collision = Collision deriving Show
-
+-- | Test two polygons for bounding circle overlap.
 radiusOverlap :: Polygon -> Polygon -> Bool
-radiusOverlap p1 p2 = r1 + r2 <= d
+radiusOverlap p1 p2 = r1 + r2 >= d
   where
   d  = distance (polyCenter p1) (polyCenter p2)
   r1 = polyRadius p1
   r2 = polyRadius p2
 
+-- | Given a list of things, return the smallest and the largest.
 range :: Ord a => [a] -> Maybe (a,a)
 range []       = Nothing
 range (z:rest) = loop z z rest
@@ -71,6 +74,11 @@ range (z:rest) = loop z z rest
                   | a > h     = loop l a as
                   | otherwise = loop l h as
 
+data Collision = Collision deriving Show
+
+-- | Check a collision between two polygons by first testing collision between
+-- their bounding circles, then by testing for collision using the split axis
+-- theorem.
 collides :: Polygon -> Polygon -> Maybe Collision
 collides p1 p2 = do
   guard (radiusOverlap p1 p2)
