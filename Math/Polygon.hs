@@ -5,9 +5,11 @@ import Math.Matrix
 import Math.Normalize
 import Math.Point
 
-import Control.Monad (guard,msum)
+import Control.Monad (guard,foldM)
 import Data.Maybe (catMaybes)
 import Graphics.Rendering.OpenGL.GL (GLfloat)
+
+import Debug.Trace
 
 
 data Polygon = Polygon
@@ -58,7 +60,7 @@ polyEdges poly = zipWith step ps (drop 1 (cycle ps))
 
 -- | Test two polygons for bounding circle overlap.
 radiusOverlap :: Polygon -> Polygon -> Bool
-radiusOverlap p1 p2 = r1 + r2 >= d
+radiusOverlap p1 p2 = r1 + r2 > d
   where
   d  = distance (polyCenter p1) (polyCenter p2)
   r1 = polyRadius p1
@@ -86,21 +88,28 @@ data Collision = Collision
 collides :: Polygon -> Polygon -> Maybe Collision
 collides p1 p2 = do
   guard (radiusOverlap p1 p2)
-  msum $ do
-    e <- polyEdges p1 ++ polyEdges p2
-    let axis   = perpendicular e
-        len    = distance (Point 0 0) axis
-        step p = abs (axis `dot` p) / len
-        c      = normalize (polyCenter p1 - polyCenter p2)
-        clen   = vectorLength c
-    return $ do
-      (l1,r1) <- range (map step (polyPoints p1))
-      (l2,r2) <- range (map step (polyPoints p2))
-      let d | r1 >= l2  = r1 - l2
-            | l1 >= r2  = l1 - r2
-            | otherwise = 0
-      guard (d > 0)
-      return Collision
-        { collisionDirection = scaleVector d c
-        , collisionLength    = d * clen
-        }
+  let c        = normalize (polyCenter p1 - polyCenter p2)
+  let clen     = vectorLength c
+  let step z e = do
+        let axis   = perpendicular e
+            len    = vectorLength axis
+            step p = abs (axis `dot` p) / len
+        (l1,r1) <- range (map step (polyPoints p1))
+        (l2,r2) <- range (map step (polyPoints p2))
+        let overlap | r1 >= l2  = r1 - l2
+                    | l1 >= r2  = l1 - r2
+                    | otherwise = -1
+        if overlap == 0
+           then return z
+           else guard (overlap > 0) >> return (max overlap z)
+
+  overlap <- foldM step 0 (polyEdges p1 ++ polyEdges p2)
+  return Collision
+    { collisionDirection = scaleVector overlap c
+    , collisionLength    = overlap * clen
+    }
+
+test = collides r r'
+  where
+  r  = rectangle 2 2
+  r' = transformPolygon (1 { mat02 = 1, mat12 = 1 }) r
