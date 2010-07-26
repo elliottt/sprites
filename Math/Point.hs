@@ -7,7 +7,9 @@ import Graphics.Rendering.OpenGL.GL (GLfloat)
 data Point = Point
   { pointX :: !GLfloat
   , pointY :: !GLfloat
-  } deriving (Eq,Show)
+  } deriving (Eq,Show,Ord)
+
+type Vector = Point
 
 instance Normalize Point where
   normalize (Point x y) = Point (inv x) (inv y)
@@ -37,3 +39,9 @@ distance :: Point -> Point -> GLfloat
 distance p1 p2 = sqrt (x*x + y*y)
   where
   Point x y = p1 - p2
+
+vectorLength :: Vector -> GLfloat
+vectorLength (Point x y) = sqrt (x * x + y * y)
+
+scaleVector :: GLfloat -> Vector -> Vector
+scaleVector d (Point x y) = Point (d * x) (d * y)

@@ -74,7 +74,11 @@ range (z:rest) = loop z z rest
                   | a > h     = loop l a as
                   | otherwise = loop l h as
 
-data Collision = Collision deriving Show
+-- | The result of a collision.
+data Collision = Collision
+  { collisionDirection :: !Vector  -- ^ Direction of the collision
+  , collisionLength    :: !GLfloat -- ^ The size of the overlap
+  } deriving Show
 
 -- | Check a collision between two polygons by first testing collision between
 -- their bounding circles, then by testing for collision using the split axis
@@ -87,8 +91,16 @@ collides p1 p2 = do
     let axis   = perpendicular e
         len    = distance (Point 0 0) axis
         step p = abs (axis `dot` p) / len
+        c      = normalize (polyCenter p1 - polyCenter p2)
+        clen   = vectorLength c
     return $ do
       (l1,r1) <- range (map step (polyPoints p1))
       (l2,r2) <- range (map step (polyPoints p2))
-      guard (r1 >= l2 || l1 >= r2)
+      let d | r1 >= l2  = r1 - l2
+            | l1 >= r2  = l1 - r2
+            | otherwise = 0
+      guard (d > 0)
       return Collision
+        { collisionDirection = scaleVector d c
+        , collisionLength    = d * clen
+        }
