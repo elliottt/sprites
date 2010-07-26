@@ -9,8 +9,6 @@ import Control.Monad (guard,foldM)
 import Data.Maybe (catMaybes)
 import Graphics.Rendering.OpenGL.GL (GLfloat)
 
-import Debug.Trace
-
 
 data Polygon = Polygon
   { polyPoints :: [Point]
@@ -99,17 +97,11 @@ collides p1 p2 = do
         let overlap | r1 >= l2  = r1 - l2
                     | l1 >= r2  = l1 - r2
                     | otherwise = -1
-        if overlap == 0
-           then return z
-           else guard (overlap > 0) >> return (max overlap z)
+        guard (overlap >= 0)
+        return (max overlap z)
 
   overlap <- foldM step 0 (polyEdges p1 ++ polyEdges p2)
   return Collision
-    { collisionDirection = scaleVector overlap c
+    { collisionDirection = c
     , collisionLength    = overlap * clen
     }
-
-test = collides r r'
-  where
-  r  = rectangle 2 2
-  r' = transformPolygon (1 { mat02 = 1, mat12 = 1 }) r
