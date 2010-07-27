@@ -1,6 +1,8 @@
 module Math.Point where
 
+import Graphics
 import Math.Normalize
+import Render
 
 import Graphics.Rendering.OpenGL.GL (GLfloat)
 
@@ -10,6 +12,9 @@ data Point = Point
   } deriving (Eq,Show,Ord)
 
 type Vector = Point
+
+instance Render Point where
+  render (Point x y) = vertex2d x y
 
 instance Normalize Point where
   normalize (Point x y) = Point (inv x) (inv y)

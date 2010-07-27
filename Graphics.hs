@@ -13,9 +13,9 @@ module Graphics (
   , withMatrix
 
     -- * Rendering
-  , Point(..)
-  , point
   , vertex2d
+  , color3
+  , setLineWidth
 
     -- * Texturing
   , Texture
@@ -99,14 +99,14 @@ withMatrix = GL.unsafePreservingMatrix
 
 -- Rendering -------------------------------------------------------------------
 
-data Point = Point !GLfloat !GLfloat
-  deriving Show
-
-point :: Point -> IO ()
-point (Point x y) = vertex2d x y
-
 vertex2d :: GLfloat -> GLfloat -> IO ()
 vertex2d x y = GL.vertex (GL.Vertex2 x y)
+
+color3 :: GLfloat -> GLfloat -> GLfloat -> IO ()
+color3 r g b = GL.color (GL.Color3 r g b)
+
+setLineWidth :: GLfloat -> IO ()
+setLineWidth w = GL.lineWidth $= w
 
 
 -- Texturing -------------------------------------------------------------------

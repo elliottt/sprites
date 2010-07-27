@@ -33,6 +33,12 @@ transformPolygon m p = p
   , polyCenter = transformPoint m (polyCenter p)
   }
 
+movePolygon :: Vector -> Polygon -> Polygon
+movePolygon v p = p
+  { polyCenter = polyCenter p + v
+  , polyPoints = map (+ v) (polyPoints p)
+  }
+
 -- | Make a polygon, centered at the origin.
 rectangle :: GLfloat -> GLfloat -> Polygon
 rectangle w h = Polygon

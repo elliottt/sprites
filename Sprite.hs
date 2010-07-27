@@ -7,6 +7,7 @@ module Sprite (
 
 import Animation
 import Graphics
+import Math.Point
 import Position
 import Render
 import Time
@@ -54,13 +55,13 @@ instance Render Sprite where
     applyFrame =<< frame (spriteAnimation s)
     renderPrimitive Quads $ do
       texCoord2d 0 0
-      point (spriteTL s)
+      render (spriteTL s)
       texCoord2d 1 0
-      point (spriteTR s)
+      render (spriteTR s)
       texCoord2d 1 1
-      point (spriteBR s)
+      render (spriteBR s)
       texCoord2d 0 1
-      point (spriteBL s)
+      render (spriteBL s)
 
 instance Update Sprite where
   update now s = update now (spriteAnimation s)
