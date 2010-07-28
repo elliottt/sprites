@@ -19,7 +19,4 @@ lineLength :: Line -> GLfloat
 lineLength (Line p1 p2) = distance p1 p2
 
 perpendicular :: Line -> Point
-perpendicular (Line (Point x1 y1) (Point x2 y2)) = normalize (p1' - p2')
-  where
-  p1' = Point (-y1) x1
-  p2' = Point (-y2) x2
+perpendicular (Line p1 p2) = normal (p1 - p2)

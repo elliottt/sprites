@@ -16,6 +16,7 @@ module Graphics (
   , vertex2d
   , color3
   , setLineWidth
+  , setPointSize
 
     -- * Texturing
   , Texture
@@ -107,6 +108,9 @@ color3 r g b = GL.color (GL.Color3 r g b)
 
 setLineWidth :: GLfloat -> IO ()
 setLineWidth w = GL.lineWidth $= w
+
+setPointSize :: GLfloat -> IO ()
+setPointSize s = GL.pointSize $= s
 
 
 -- Texturing -------------------------------------------------------------------

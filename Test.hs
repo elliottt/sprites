@@ -4,6 +4,7 @@ module Test where
 
 import Event
 import Graphics
+import Math.Matrix
 import Math.Point
 import Math.Polygon
 import Render
@@ -15,27 +16,32 @@ import System.Exit (exitSuccess)
 main = do
   initGraphics "Test" 800 600
 
-  let body = toBody ConvexBody
-        { cbPolygon      = rectangle 1 1
-        , cbFriction     = 0
-        , cbMass         = 1.0
-        , cbVelocity     = Point 0.01 0.01
-        , cbAcceleration = Point 0.0 0.0
+  let r1 = movePolygon (Point (-1) 0) (rectangle 1 1)
+      s0 = State
+        { sVelocity     = 0
+        , sAcceleration = 0
+        , sMass         = 0.5
+        , sFriction     = 0
         }
 
-  world <- newIORef [body]
+      r2 = movePolygon (Point 1 0) (rectangle 1 1)
+
+  world <- newIORef
+    [ BPolygon r1 s0 { sAcceleration = Point 0.05 0, sMass = 1}
+    , BPolygon r2 s0
+    ]
 
   withEventManager $ \em -> do
 
     setLineWidth 4
+    setPointSize 4
     color3 1 1 1
 
     em `listen` \ QuitEvent -> exitSuccess
 
     em `listen` \ (TickEvent now delta) -> do
 
-      w <- readIORef world
-      let w' = stepWorld delta w
+      w' <- stepWorld delta =<< readIORef world
       writeIORef world w'
 
       clearScreen

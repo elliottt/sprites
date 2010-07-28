@@ -17,10 +17,11 @@ instance Render Point where
   render (Point x y) = vertex2d x y
 
 instance Normalize Point where
-  normalize (Point x y) = Point (inv x) (inv y)
+  normalize p@(Point x y)
+    | len == 0  = p
+    | otherwise = Point (x/len) (y/len)
     where
-    inv 0 = 0
-    inv n = 1 / n
+    len = vectorLength p
 
 instance Num Point where
   (*)           = pointBinary (*)
@@ -39,6 +40,9 @@ pointUnary f (Point x y) = Point (f x) (f y)
 dot :: Point -> Point -> GLfloat
 dot (Point x1 y1) (Point x2 y2) = x1 * x2 + y1 * y2
 {-# INLINE dot #-}
+
+normal :: Point -> Point
+normal (Point x y) = Point (-y) x
 
 distance :: Point -> Point -> GLfloat
 distance p1 p2 = sqrt (x*x + y*y)
