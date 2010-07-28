@@ -9,7 +9,6 @@ import Animation
 import Graphics
 import Math.Point
 import Position
-import Render
 import Time
 
 import Data.IORef (newIORef,IORef,readIORef,writeIORef)

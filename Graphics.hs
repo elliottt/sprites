@@ -17,6 +17,7 @@ module Graphics (
   , color3
   , setLineWidth
   , setPointSize
+  , Render(..)
 
     -- * Texturing
   , Texture
@@ -111,6 +112,17 @@ setLineWidth w = GL.lineWidth $= w
 
 setPointSize :: GLfloat -> IO ()
 setPointSize s = GL.pointSize $= s
+
+-- | Things that can be rendered.
+class Render a where
+  render :: a -> IO ()
+
+instance Render a => Render (Maybe a) where
+  render Nothing  = return ()
+  render (Just a) = render a
+
+instance Render a => Render [a] where
+  render = mapM_ render
 
 
 -- Texturing -------------------------------------------------------------------

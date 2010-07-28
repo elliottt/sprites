@@ -1,8 +1,8 @@
 module Math.Line where
 
+import Graphics
 import Math.Normalize
 import Math.Point
-import Render
 
 import Graphics.Rendering.OpenGL.GL (GLfloat)
 
@@ -20,3 +20,6 @@ lineLength (Line p1 p2) = distance p1 p2
 
 perpendicular :: Line -> Point
 perpendicular (Line p1 p2) = normal (p1 - p2)
+
+edges :: [Point] -> [Line]
+edges ps = zipWith Line ps (drop 1 (cycle ps))

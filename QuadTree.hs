@@ -2,8 +2,8 @@
 
 module QuadTree where
 
+import Graphics
 import Position
-import Render
 
 import Control.Applicative (Applicative(..),Alternative(..),(<$>))
 import Control.Monad (guard)

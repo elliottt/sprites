@@ -2,7 +2,7 @@
 
 module Dungeon where
 
-import Render hiding (update)
+import Graphics
 
 import Control.Monad
 import Data.Array.IO

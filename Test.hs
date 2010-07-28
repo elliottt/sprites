@@ -7,7 +7,6 @@ import Graphics
 import Math.Matrix
 import Math.Point
 import Math.Polygon
-import Render
 import World
 
 import Data.IORef (newIORef,writeIORef,readIORef)

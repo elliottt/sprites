@@ -6,7 +6,6 @@ import Math.Matrix
 import Math.Normalize
 import Math.Point
 import Math.Polygon
-import Render
 import Time
 
 import Control.Monad (guard,foldM)

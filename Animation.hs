@@ -13,7 +13,6 @@ module Animation (
   ) where
 
 import Graphics
-import Render
 import Time
 
 import Control.Applicative (Applicative(..),(<$>))

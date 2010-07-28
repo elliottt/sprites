@@ -4,7 +4,6 @@ import Animation
 import Event
 import Graphics
 import Position
-import Render
 import Sprite
 import Time
 import Dungeon

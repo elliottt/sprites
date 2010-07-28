@@ -2,7 +2,6 @@ module Position where
 
 import Graphics
 import Math.Point
-import Render
 
 import Data.IORef (IORef,newIORef,readIORef,writeIORef)
 
