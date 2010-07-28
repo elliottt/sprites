@@ -8,6 +8,7 @@ module Physics.Shape (
     -- * Construction
   , circle
   , polygon
+  , rectangle
 
     -- * Collision Checking
   , radiusOverlap
@@ -28,6 +29,7 @@ import Graphics.Rendering.OpenGL.GL (GLfloat)
 data Shape
   = SCircle !Point !GLfloat
   | SPolygon !Point !GLfloat [Point]
+    deriving Show
 
 -- | Get the center of a shape.
 center :: Shape -> Point
@@ -67,6 +69,18 @@ polygon ps
   radii    = map (distance c) ps
 
 
+rectangle :: Point -> GLfloat -> GLfloat -> Maybe Shape
+rectangle c@(Point x y) w h = do
+  guard (w > 0 && h > 0)
+  let w2 = w / 2
+      h2 = h / 2
+      tl = Point (x-w2) (y+h2)
+      tr = Point (x+w2) (y+h2)
+      br = Point (x+w2) (y-h2)
+      bl = Point (x-w2) (y-h2)
+  return (SPolygon c (distance0 (Point w2 h2)) [tl,tr,br,bl])
+
+
 -- Collision Checking ----------------------------------------------------------
 
 data Collision = Collision !Vector deriving Show
@@ -97,8 +111,8 @@ checkCollision' s1 s2 =
       Collision v <- checkPolygonCircle c2 r2 ps c1 r1
       return (Collision (invertVector v))
 
-    (SPolygon c1 r1 ps1, SPolygon c2 r2 ps2) ->
-      checkPolygonPolygon c1 r1 ps2 c2 r2 ps2
+    (SPolygon c1 _ ps1, SPolygon c2 _ ps2) ->
+      checkPolygonPolygon c1 ps1 c2 ps2
 
 
 range :: Ord a => [a] -> Maybe (a,a)
@@ -110,11 +124,10 @@ range (a:as) = loop a a as
                   | otherwise = loop l h xs
   loop l h []                 = Just (l,h)
 
-overlapSize :: (GLfloat,GLfloat) -> (GLfloat,GLfloat) -> Maybe GLfloat
+overlapSize :: (GLfloat,GLfloat) -> (GLfloat,GLfloat) -> GLfloat
 overlapSize (l1,r1) (l2,r2)
-  | r1 >= l2  = Just (r1 - l2)
-  | r2 >= l1  = Just (r2 - l1)
-  | otherwise = Nothing
+  | l1 < l2   = r1 - l2
+  | otherwise = r2 - l1
 
 -- | Check the collision of a polygon and a circle.
 checkPolygonCircle :: Point -> GLfloat -> [Point]
@@ -134,20 +147,19 @@ checkPolygonCircle c1 r1 ps c2 r2 = do
   let dir = normalize (pointToVector (c1 - c2))
   return (Collision (scaleVector (distance c1 c2) dir))
 
-
-
 -- | Check the collision of two polygons.
-checkPolygonPolygon :: Point -> GLfloat -> [Point]
-                    -> Point -> GLfloat -> [Point]
+checkPolygonPolygon :: Point -> [Point]
+                    -> Point -> [Point]
                     -> Maybe Collision
-checkPolygonPolygon c1 r1 ps1 c2 r2 ps2 = do
-  let axes        = map perpendicular (edges ps2 ++ edges ps2)
-      step z axis = do
-        let alen   = distance0 axis
-            proj p = abs (axis `dot` p) / alen
+checkPolygonPolygon c1 ps1 c2 ps2 = do
+  let axes        = map (normalize . perpendicular) (edges ps2 ++ edges ps2)
+      step z axis = z `seq` do
+        let proj p = axis `dot` p
         p1 <- range (map proj ps1)
         p2 <- range (map proj ps2)
-        z `seq` max z `fmap` overlapSize p1 p2
+        let o = overlapSize p1 p2
+        guard (o >= 0)
+        return (max z o)
 
   overlap <- foldM step 0 axes
   let dir = normalize (pointToVector (c1 - c2))
