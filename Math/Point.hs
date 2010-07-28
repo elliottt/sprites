@@ -33,6 +33,9 @@ instance Fractional Point where
   recip (Point x y) = Point (1/x) (1/y)
   fromRational r    = Point (fromRational r) (fromRational r)
 
+scalePoint :: GLfloat -> Point -> Point
+scalePoint d (Point x y) = Point (d*x) (d*y)
+
 pointBinary :: (GLfloat -> GLfloat -> GLfloat) -> (Point -> Point -> Point)
 pointBinary f (Point x1 y1) (Point x2 y2) = Point (f x1 x2) (f y1 y2)
 

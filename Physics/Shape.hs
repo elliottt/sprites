@@ -9,6 +9,7 @@ module Physics.Shape (
   , circle
   , polygon
   , rectangle
+  , triangle
 
     -- * Collision Checking
   , radiusOverlap
@@ -22,6 +23,8 @@ import Physics.Vector
 
 import Control.Monad (guard,foldM)
 import Graphics.Rendering.OpenGL.GL (GLfloat)
+
+import Debug.Trace
 
 
 -- Shapes ----------------------------------------------------------------------
@@ -80,6 +83,9 @@ rectangle c@(Point x y) w h = do
       bl = Point (x-w2) (y-h2)
   return (SPolygon c (distance0 (Point w2 h2)) [tl,tr,br,bl])
 
+triangle :: Point -> Point -> Point -> Maybe Shape
+triangle p1 p2 p3 = polygon [p1,p2,p3]
+
 
 -- Collision Checking ----------------------------------------------------------
 
@@ -134,14 +140,17 @@ checkPolygonCircle :: Point -> GLfloat -> [Point]
                    -> Point -> GLfloat
                    -> Maybe Collision
 checkPolygonCircle c1 r1 ps c2 r2 = do
-  let ray                 = Line c1 c2
-      step e@(Line p _) = do
-        let axis   = perpendicular e
+  let r0 = distance c1 c2 - r2
+  let c3 = c1 + scalePoint r0 (normalize (c2 - c1))
+  let step e@(Line p _) = do
+        let axis   = normalize (perpendicular e)
             alen   = distance0 axis
             proj x = abs (axis `dot` x) / alen
             p'     = proj p
-        (l,r) <- range [proj c1, proj c2]
-        guard (p' >= r || p' <= l)
+        (l,r) <- range [proj c1, proj c3]
+        -- if the segment (c1,c3) falls to either side of the line then it's
+        -- within the polygon
+        show (l,r,p') `trace` guard (p' >= r || p' <= l)
 
   mapM_ step (edges ps)
   let dir = normalize (pointToVector (c1 - c2))
