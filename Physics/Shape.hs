@@ -3,6 +3,7 @@ module Physics.Shape (
     Shape
   , center
   , distanceBetween
+  , direction
 
     -- * Construction
   , circle
@@ -35,6 +36,7 @@ data Shape
 instance Physical Shape where
   boundingBox = shapeAABB
   moveBy      = moveShape
+  position    = center
 
 instance Collides Shape where
   collides = checkCollision
@@ -117,7 +119,7 @@ checkCollision :: Shape -> Shape -> Maybe Collision
 checkCollision s1 s2 =
   case (s1,s2) of
 
-    (SCircle c1 r1, SCircle c2 r2) ->
+    (SCircle c1 _, SCircle c2 _) ->
       return (Collision (pointToVector (c1 - c2)))
 
     (SPolygon c1 ps, SCircle c2 r2) ->

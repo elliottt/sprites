@@ -7,9 +7,14 @@ module Physics.Body (
   , stepPhysicalState
   ) where
 
+import Math.Point
 import Math.Utils
 import Physics.AABB
+import Physics.Collision
 import Physics.Vector
+
+import Control.Monad (guard)
+
 
 data PhysicalState a = PhysicalState
   { psVelocity     :: !Vector
@@ -21,9 +26,15 @@ data PhysicalState a = PhysicalState
   , psData         :: a
   } deriving Show
 
+instance Collides a => Collides (PhysicalState a) where
+  collides a b = do
+    guard (aabbOverlap (psAABB a) (psAABB b))
+    collides (psData a) (psData b)
+
 class Physical a where
   boundingBox :: a -> AABB
-  moveBy :: Vector -> a -> a
+  moveBy      :: Vector -> a -> a
+  position    :: a -> Point
 
 mkPhysicalState :: Physical a => a -> PhysicalState a
 mkPhysicalState a = PhysicalState
