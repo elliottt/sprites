@@ -21,7 +21,6 @@ import Data.Array (Array,listArray,(!))
 import Data.IORef (IORef,newIORef,readIORef,writeIORef)
 import Text.JSON (JSON(..),JSValue(..),Result(..),valFromObj,makeObj
                  ,decodeStrict)
-import qualified Graphics.Rendering.OpenGL.GL as GL
 
 
 -- Animations ------------------------------------------------------------------

@@ -2,8 +2,8 @@ module Math.Point where
 
 import Graphics
 import Math.Normalize
+import Math.Utils
 
-import Graphics.Rendering.OpenGL.GL (GLfloat)
 
 data Point = Point
   { pointX :: !GLfloat

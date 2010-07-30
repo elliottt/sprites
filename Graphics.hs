@@ -14,9 +14,12 @@ module Graphics (
 
     -- * Rendering
   , vertex2d
-  , color3
+  , color3, withColor3_
+  , color4, withColor4_
   , setLineWidth
+  , getLineWidth
   , setPointSize
+  , getPointSize
   , Render(..)
 
     -- * Texturing
@@ -29,15 +32,16 @@ module Graphics (
   , loadTexture
 
     -- * Re-exported
-  , GLfloat
   , GL.renderPrimitive
   , GL.PrimitiveMode(..)
   ) where
 
+import Math.Utils
+
 import Foreign.C.Types (CInt)
 import Foreign.ForeignPtr (withForeignPtr)
 import Foreign.Ptr (Ptr)
-import Graphics.Rendering.OpenGL.GL (GLuint,GLfloat,HasSetter(..))
+import Graphics.Rendering.OpenGL.GL (GLuint,HasSetter(..))
 import qualified Graphics.Rendering.OpenGL.GL  as GL
 import qualified Graphics.Rendering.OpenGL.GLU as GLU
 import qualified Graphics.UI.SDL               as SDL
@@ -105,13 +109,32 @@ vertex2d :: GLfloat -> GLfloat -> IO ()
 vertex2d x y = GL.vertex (GL.Vertex2 x y)
 
 color3 :: GLfloat -> GLfloat -> GLfloat -> IO ()
-color3 r g b = GL.color (GL.Color3 r g b)
+color3 r g b = color4 r g b 1.0
+
+color4 :: GLfloat -> GLfloat -> GLfloat -> GLfloat -> IO ()
+color4 r g b a = GL.color (GL.Color4 r g b a)
+
+withColor3_ :: GLfloat -> GLfloat -> GLfloat -> IO () -> IO ()
+withColor3_ r g b = withColor4_ r g b 1.0
+
+withColor4_ :: GLfloat -> GLfloat -> GLfloat -> GLfloat -> IO () -> IO ()
+withColor4_ r g b a action = do
+  GL.Color4 r0 g0 b0 a0 <- GL.get GL.currentColor
+  color4 r g b a
+  action
+  color4 r0 g0 b0 a0
 
 setLineWidth :: GLfloat -> IO ()
 setLineWidth w = GL.lineWidth $= w
 
+getLineWidth :: IO GLfloat
+getLineWidth  = GL.get GL.lineWidth
+
 setPointSize :: GLfloat -> IO ()
 setPointSize s = GL.pointSize $= s
+
+getPointSize :: IO GLfloat
+getPointSize  = GL.get GL.pointSize
 
 -- | Things that can be rendered.
 class Render a where

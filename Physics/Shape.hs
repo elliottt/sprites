@@ -19,10 +19,12 @@ module Physics.Shape (
 import Math.Line
 import Math.Normalize
 import Math.Point
+import Math.Utils
+import Physics.AABB
+import Physics.Body
 import Physics.Vector
 
 import Control.Monad (guard,foldM)
-import Graphics.Rendering.OpenGL.GL (GLfloat)
 
 import Debug.Trace
 
@@ -33,6 +35,10 @@ data Shape
   = SCircle !Point !GLfloat
   | SPolygon !Point !GLfloat [Point]
     deriving Show
+
+instance Physical Shape where
+  boundingBox = shapeAABB
+  moveBy      = moveShape
 
 -- | Get the center of a shape.
 center :: Shape -> Point
@@ -87,9 +93,33 @@ triangle :: Point -> Point -> Point -> Maybe Shape
 triangle p1 p2 p3 = polygon [p1,p2,p3]
 
 
+-- Movement --------------------------------------------------------------------
+
+-- | Move a shape by a vector.
+moveShape :: Vector -> Shape -> Shape
+moveShape (Vector x y) s =
+  case s of
+    SCircle c r     -> SCircle (c+p) r
+    SPolygon c r ps -> SPolygon (c+p) r (map (+p) ps)
+  where
+  p = Point x y
+
+
 -- Collision Checking ----------------------------------------------------------
 
 data Collision = Collision !Vector deriving Show
+
+-- | Construct the AABB for a shape.
+shapeAABB :: Shape -> AABB
+shapeAABB s =
+  case s of
+    SCircle (Point x y) r -> AABB (Point (x-r)  (y+r)) (Point (2*r) (2*r))
+    SPolygon _ r ps       -> AABB (Point x y) (Point (x'-x) (y-y'))
+      where
+      proj_x p    = p `dot` Point 1 0
+      Just (x,x') = range (map proj_x ps)
+      proj_y p    = p `dot` Point 0 1
+      Just (y',y) = range (map proj_y ps)
 
 -- | Check to see if the bounding circles of two shapes overlap.
 radiusOverlap :: Shape -> Shape -> Bool
@@ -119,21 +149,6 @@ checkCollision' s1 s2 =
 
     (SPolygon c1 _ ps1, SPolygon c2 _ ps2) ->
       checkPolygonPolygon c1 ps1 c2 ps2
-
-
-range :: Ord a => [a] -> Maybe (a,a)
-range []     = Nothing
-range (a:as) = loop a a as
-  where
-  loop l h (x:xs) | x > h     = loop l x xs
-                  | x < l     = loop x h xs
-                  | otherwise = loop l h xs
-  loop l h []                 = Just (l,h)
-
-overlapSize :: (GLfloat,GLfloat) -> (GLfloat,GLfloat) -> GLfloat
-overlapSize (l1,r1) (l2,r2)
-  | l1 < l2   = r1 - l2
-  | otherwise = r2 - l1
 
 -- | Check the collision of a polygon and a circle.
 checkPolygonCircle :: Point -> GLfloat -> [Point]
@@ -166,7 +181,7 @@ checkPolygonPolygon c1 ps1 c2 ps2 = do
         let proj p = axis `dot` p
         p1 <- range (map proj ps1)
         p2 <- range (map proj ps2)
-        let o = overlapSize p1 p2
+        let o = rangeOverlap p1 p2
         guard (o >= 0)
         return (max z o)
 

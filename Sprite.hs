@@ -1,18 +1,16 @@
 module Sprite (
     -- * Sprites
     Sprite
-  , mkSprite, mkSpriteRect, mkSpriteWidthHeight
+  , mkSprite
   , spriteTL, spriteBR
   ) where
 
 import Animation
 import Graphics
 import Math.Point
-import Position
 import Time
 
 import Data.IORef (newIORef,IORef,readIORef,writeIORef)
-import qualified Graphics.Rendering.OpenGL.GL as GL
 
 
 -- Basic Sprites ---------------------------------------------------------------
@@ -35,19 +33,6 @@ mkSprite a tl tr br bl = Sprite
   , spriteBR        = br
   , spriteBL        = bl
   }
-
--- | Make a sprite using a rectangle.
-mkSpriteRect :: Animation -> Rect -> Sprite
-mkSpriteRect a r = mkSprite a (rectTopLeft     r) (rectTopRight   r)
-                              (rectBottomRight r) (rectBottomLeft r)
-
--- | Make a sprite using its width and height.
-mkSpriteWidthHeight :: Animation -> GLfloat -> GLfloat -> Sprite
-mkSpriteWidthHeight a w h = mkSpriteRect a r
-  where
-  w2 = w / 2
-  h2 = h / 2
-  r = Rect (-w2) h2 w2 (-h2)
 
 instance Render Sprite where
   render s = do

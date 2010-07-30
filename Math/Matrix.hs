@@ -1,9 +1,9 @@
 module Math.Matrix where
 
 import Math.Point
+import Math.Utils
 
 import Data.Monoid (Monoid(..))
-import Graphics.Rendering.OpenGL.GL (GLfloat)
 
 data Matrix = Matrix
   { mat00 :: !GLfloat, mat01 :: !GLfloat, mat02 :: !GLfloat

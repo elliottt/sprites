@@ -10,7 +10,6 @@ import Dungeon
 
 import System.Exit (exitSuccess)
 
-import qualified Graphics.Rendering.OpenGL.GL as GL
 import qualified Data.Map as Map
 import Data.Array.IO
 

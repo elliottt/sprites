@@ -14,3 +14,6 @@ type Interval = Word32
 
 addInterval :: Interval -> Time -> Time
 addInterval  = (+)
+
+class Update a where
+  update :: Time -> a -> IO ()

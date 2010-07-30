@@ -2,6 +2,8 @@ module Position where
 
 import Graphics
 import Math.Point
+import Math.Utils
+import Time
 
 import Data.IORef (IORef,newIORef,readIORef,writeIORef)
 

@@ -3,8 +3,7 @@ module Math.Line where
 import Graphics
 import Math.Normalize
 import Math.Point
-
-import Graphics.Rendering.OpenGL.GL (GLfloat)
+import Math.Utils
 
 data Line = Line !Point !Point
   deriving (Eq,Show)
