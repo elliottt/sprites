@@ -2,7 +2,6 @@ module Physics.Shape (
     -- * Shapes
     Shape
   , center
-  , radius
   , distanceBetween
 
     -- * Construction
@@ -10,10 +9,6 @@ module Physics.Shape (
   , polygon
   , rectangle
   , triangle
-
-    -- * Collision Checking
-  , radiusOverlap
-  , checkCollision
   ) where
 
 import Math.Line
@@ -22,6 +17,7 @@ import Math.Point
 import Math.Utils
 import Physics.AABB
 import Physics.Body
+import Physics.Collision
 import Physics.Vector
 
 import Control.Monad (guard,foldM)
@@ -33,22 +29,20 @@ import Debug.Trace
 
 data Shape
   = SCircle !Point !GLfloat
-  | SPolygon !Point !GLfloat [Point]
+  | SPolygon !Point [Point]
     deriving Show
 
 instance Physical Shape where
   boundingBox = shapeAABB
   moveBy      = moveShape
 
+instance Collides Shape where
+  collides = checkCollision
+
 -- | Get the center of a shape.
 center :: Shape -> Point
-center (SCircle c _)    = c
-center (SPolygon c _ _) = c
-
--- | Get the radius of a shape
-radius :: Shape -> GLfloat
-radius (SCircle _ r)    = r
-radius (SPolygon _ r _) = r
+center (SCircle c _)  = c
+center (SPolygon c _) = c
 
 -- | Get the distance between the centers of two shapes.
 distanceBetween :: Shape -> Shape -> GLfloat
@@ -71,11 +65,10 @@ circle  = SCircle
 polygon :: [Point] -> Maybe Shape
 polygon ps
   | numVerts < 3 = Nothing
-  | otherwise    = Just (SPolygon c (maximum radii) ps)
+  | otherwise    = Just (SPolygon c ps)
   where
   numVerts = length ps
   c        = sum ps / fromIntegral numVerts
-  radii    = map (distance c) ps
 
 
 rectangle :: Point -> GLfloat -> GLfloat -> Maybe Shape
@@ -87,7 +80,7 @@ rectangle c@(Point x y) w h = do
       tr = Point (x+w2) (y+h2)
       br = Point (x+w2) (y-h2)
       bl = Point (x-w2) (y-h2)
-  return (SPolygon c (distance0 (Point w2 h2)) [tl,tr,br,bl])
+  return (SPolygon c [tl,tr,br,bl])
 
 triangle :: Point -> Point -> Point -> Maybe Shape
 triangle p1 p2 p3 = polygon [p1,p2,p3]
@@ -99,62 +92,49 @@ triangle p1 p2 p3 = polygon [p1,p2,p3]
 moveShape :: Vector -> Shape -> Shape
 moveShape (Vector x y) s =
   case s of
-    SCircle c r     -> SCircle (c+p) r
-    SPolygon c r ps -> SPolygon (c+p) r (map (+p) ps)
+    SCircle c r   -> SCircle (c+p) r
+    SPolygon c ps -> SPolygon (c+p) (map (+p) ps)
   where
   p = Point x y
 
 
 -- Collision Checking ----------------------------------------------------------
 
-data Collision = Collision !Vector deriving Show
-
 -- | Construct the AABB for a shape.
 shapeAABB :: Shape -> AABB
 shapeAABB s =
   case s of
     SCircle (Point x y) r -> AABB (Point (x-r)  (y+r)) (Point (2*r) (2*r))
-    SPolygon _ r ps       -> AABB (Point x y) (Point (x'-x) (y-y'))
+    SPolygon _ ps         -> AABB (Point x y) (Point (x'-x) (y-y'))
       where
       proj_x p    = p `dot` Point 1 0
       Just (x,x') = range (map proj_x ps)
       proj_y p    = p `dot` Point 0 1
       Just (y',y) = range (map proj_y ps)
 
--- | Check to see if the bounding circles of two shapes overlap.
-radiusOverlap :: Shape -> Shape -> Bool
-radiusOverlap s1 s2 = radius s1 + radius s2 >= distanceBetween s1 s2
-
--- | Check for collisions, requiring that the bounding circles of each shape are
--- overlapping.
+-- | Check for collisions.
 checkCollision :: Shape -> Shape -> Maybe Collision
-checkCollision s1 s2 = do
-  guard (radiusOverlap s1 s2)
-  checkCollision' s1 s2
-
--- | Dispatch to more specific collision checking.
-checkCollision' :: Shape -> Shape -> Maybe Collision
-checkCollision' s1 s2 =
+checkCollision s1 s2 =
   case (s1,s2) of
 
     (SCircle c1 r1, SCircle c2 r2) ->
       return (Collision (pointToVector (c1 - c2)))
 
-    (SPolygon c1 r1 ps, SCircle c2 r2) ->
-      checkPolygonCircle c1 r1 ps c2 r2
+    (SPolygon c1 ps, SCircle c2 r2) ->
+      checkPolygonCircle c1 ps c2 r2
 
-    (SCircle c1 r1, SPolygon c2 r2 ps) -> do
-      Collision v <- checkPolygonCircle c2 r2 ps c1 r1
+    (SCircle c1 r1, SPolygon c2 ps) -> do
+      Collision v <- checkPolygonCircle c2 ps c1 r1
       return (Collision (invertVector v))
 
-    (SPolygon c1 _ ps1, SPolygon c2 _ ps2) ->
+    (SPolygon c1 ps1, SPolygon c2 ps2) ->
       checkPolygonPolygon c1 ps1 c2 ps2
 
 -- | Check the collision of a polygon and a circle.
-checkPolygonCircle :: Point -> GLfloat -> [Point]
+checkPolygonCircle :: Point -> [Point]
                    -> Point -> GLfloat
                    -> Maybe Collision
-checkPolygonCircle c1 r1 ps c2 r2 = do
+checkPolygonCircle c1 ps c2 r2 = do
   let r0 = distance c1 c2 - r2
   let c3 = c1 + scalePoint r0 (normalize (c2 - c1))
   let step e@(Line p _) = do

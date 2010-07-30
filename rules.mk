@@ -10,21 +10,22 @@ else
 endif
 
 GHC		= ghc -odir ghc -hidir ghc -Wall -ighc $(GHC_VERBOSITY)
-HS_SOURCES	= Animation.hs       \
-		  Dungeon.hs         \
-		  Event.hs           \
-		  Gen.hs             \
-		  Graphics.hs        \
-		  Math/Line.hs       \
-		  Math/Matrix.hs     \
-		  Math/Normalize.hs  \
-		  Math/Point.hs      \
-		  Math/Utils.hs      \
-		  Physics/AABB.hs    \
-		  Physics/Body.hs    \
-		  Physics/Shape.hs   \
-		  Physics/Vector.hs  \
-		  Physics/World.hs   \
+HS_SOURCES	= Animation.hs         \
+		  Dungeon.hs           \
+		  Event.hs             \
+		  Gen.hs               \
+		  Graphics.hs          \
+		  Math/Line.hs         \
+		  Math/Matrix.hs       \
+		  Math/Normalize.hs    \
+		  Math/Point.hs        \
+		  Math/Utils.hs        \
+		  Physics/AABB.hs      \
+		  Physics/Body.hs      \
+		  Physics/Collision.hs \
+		  Physics/Shape.hs     \
+		  Physics/Vector.hs    \
+		  Physics/World.hs     \
 		  Time.hs
 TARGETS		= Test
 OBJS		= $(patsubst %.hs,ghc/%.o,$(HS_SOURCES))
