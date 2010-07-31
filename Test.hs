@@ -18,7 +18,7 @@ main = do
   initGraphics "Test" 800 600
 
   let ground = mkPhysicalState $ fromJust $ rectangle (Point 0 0) 10 0.1
-  let square = mkPhysicalState $ fromJust $ rectangle (Point 0 10) 1 1
+  let square = mkPhysicalState $ fromJust $ rectangle (Point 1 10) 1 1
   let world  = (emptyWorld 1000 1000)
         { worldGravity = Just (Vector 0 (-0.1))
         }

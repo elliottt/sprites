@@ -29,11 +29,17 @@ dotProduct (Vector x1 y1) (Vector x2 y2) = x1*x2 + y1*y2
 addVector :: Vector -> Vector -> Vector
 addVector (Vector x1 y1) (Vector x2 y2) = Vector (x1+x2) (y1+y2)
 
+subtractVector :: Vector -> Vector -> Vector
+subtractVector (Vector x1 y1) (Vector x2 y2) = Vector (x1-x2) (y1-y2)
+
 vectorLength :: Vector -> GLfloat
 vectorLength (Vector x y) = sqrt (x*x + y*y)
 
 invertVector :: Vector -> Vector
 invertVector (Vector x y) = Vector (-x) (-y)
+
+normalVector :: Vector -> Vector
+normalVector (Vector x y) = Vector (-y) x
 
 -- | Turn a point into a vector.
 pointToVector :: Point -> Vector

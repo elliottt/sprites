@@ -1,7 +1,9 @@
 module Physics.World where
 
 import Graphics
+import Math.Matrix
 import Math.Point
+import Math.Utils
 import Physics.AABB
 import Physics.Body
 import Physics.Collision
@@ -12,6 +14,8 @@ import Time
 import Control.Monad (guard)
 import Data.List (partition)
 import Data.Maybe (fromMaybe,mapMaybe)
+
+import Debug.Trace
 
 
 type Body = PhysicalState Shape
@@ -40,9 +44,37 @@ stepWorld dt0 w = w
   (ds,ss)     = collisions w
   ds'         = mapMaybe step ds
   step (p,cs) = do
-    let p' = stepPhysicalState dt p
-    guard (psAABB p' `aabbOverlap` worldBox w)
-    return p'
+    let resolve (c,q) = resolveCollision c p q
+    case map resolve cs of
+
+      [] -> do
+        let p' = stepPhysicalState dt p
+        guard (psAABB p' `aabbOverlap` worldBox w)
+        return p'
+
+      vs -> do
+        let (i,v') = foldl1 (\(x,y) (a,b) -> (addVector x a, addVector y b)) vs
+        let p'     = stepPhysicalState dt
+                   $ applyImpulse v'
+                   $ moveBy i p
+        guard (psAABB p' `aabbOverlap` worldBox w)
+        return p'
+
+-- | Turn a collision into a displacement vector, and a new velocity.
+resolveCollision :: Collision -> Body -> Body -> (Vector,Vector)
+resolveCollision c p q =
+  "resolve" `trace`
+  show v  `trace`
+  show v' `trace`
+  (disp,v')
+  where
+  disp = collisionDirection c
+
+  n    = collisionNormal c
+  v    = psVelocity p
+
+  nperp = scaleVector (normalVector n `dotProduct` v) v
+  v'    = subtractVector nperp (scaleVector (n `dotProduct` v) n)
 
 collisions :: World -> ([(Body,[(Collision,Body)])], [Body])
 collisions w = loop ds [] []
@@ -65,5 +97,3 @@ addBody b w = w { worldBodies = b' : worldBodies w }
      | otherwise  = b { psAcceleration = addVector (psAcceleration b)
                                        $ fromMaybe zeroVector
                                        $ worldGravity w }
-
-

@@ -2,6 +2,7 @@ module Physics.Body (
     PhysicalState(..)
   , mkPhysicalState
   , Physical(..)
+  , psVelocity
 
   , moveBy
   , isStationary
@@ -43,13 +44,18 @@ class Physical a where
   transform   :: Matrix -> a -> a
   position    :: a -> Point
 
+psVelocity :: PhysicalState a -> Vector
+psVelocity ps = Vector (mat02 t) (mat12 t)
+  where
+  t = psTransform ps
+
 moveBy :: Physical a => Vector -> PhysicalState a -> PhysicalState a
 moveBy (Vector x y) ps = ps
   { psData = a'
   , psAABB = boundingBox a'
   }
   where
-  a' = transform (0 { mat02 = x, mat12 = y }) (psData ps)
+  a' = transform (1 { mat02 = x, mat12 = y }) (psData ps)
 
 mkPhysicalState :: Physical a => a -> PhysicalState a
 mkPhysicalState a = PhysicalState
@@ -85,7 +91,7 @@ stepPhysicalState dt ps
 
 applyImpulse :: Vector -> PhysicalState a -> PhysicalState a
 applyImpulse (Vector x y) ps = ps
-  { psTransform = t { mat02 = mat02 t + x, mat12 = mat12 t + y }
+  { psTransform = t { mat02 = x, mat12 = y }
   }
   where
   t = psTransform ps

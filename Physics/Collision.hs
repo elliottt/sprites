@@ -4,6 +4,7 @@ import Physics.Vector
 
 data Collision = Collision
   { collisionDirection :: !Vector
+  , collisionNormal    :: !Vector
   } deriving Show
 
 class Collides a where
