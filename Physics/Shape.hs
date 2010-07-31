@@ -12,7 +12,9 @@ module Physics.Shape (
   , triangle
   ) where
 
+import Graphics
 import Math.Line
+import Math.Matrix
 import Math.Normalize
 import Math.Point
 import Math.Utils
@@ -23,8 +25,6 @@ import Physics.Vector
 
 import Control.Monad (guard,foldM)
 
-import Debug.Trace
-
 
 -- Shapes ----------------------------------------------------------------------
 
@@ -33,9 +33,18 @@ data Shape
   | SPolygon !Point [Point]
     deriving Show
 
+instance Render Shape where
+  render s =
+    case s of
+      SCircle c r   -> fail "Can't render a circle, currently"
+      SPolygon c ps -> do
+        renderPrimitive Points (render c)
+        let edges = zipWith Line ps (drop 1 (cycle ps))
+        renderPrimitive Lines (mapM_ render edges)
+
 instance Physical Shape where
   boundingBox = shapeAABB
-  moveBy      = moveShape
+  transform   = transformShape
   position    = center
 
 instance Collides Shape where
@@ -100,6 +109,17 @@ moveShape (Vector x y) s =
   p = Point x y
 
 
+-- | Transform a shape by a matrix.
+transformShape :: Matrix -> Shape -> Shape
+transformShape mat s =
+  case s of
+    -- XXX: transform the radius of the shape as well.
+    SCircle c r   -> SCircle (f c) r
+    SPolygon c ps -> SPolygon (f c) (map f ps)
+  where
+  f = transformPoint mat
+
+
 -- Collision Checking ----------------------------------------------------------
 
 -- | Construct the AABB for a shape.
@@ -147,7 +167,7 @@ checkPolygonCircle c1 ps c2 r2 = do
         (l,r) <- range [proj c1, proj c3]
         -- if the segment (c1,c3) falls to either side of the line then it's
         -- within the polygon
-        show (l,r,p') `trace` guard (p' >= r || p' <= l)
+        guard (p' >= r || p' <= l)
 
   mapM_ step (edges ps)
   let dir = normalize (pointToVector (c1 - c2))

@@ -11,6 +11,16 @@ data Matrix = Matrix
   , mat20 :: !GLfloat, mat21 :: !GLfloat, mat22 :: !GLfloat
   } deriving (Eq,Show)
 
+instance HasZero Matrix where
+  zero     = 0
+  isZero m = all f
+    [ mat00, mat01, mat02
+    , mat10, mat11, mat12
+    , mat20, mat21, mat22
+    ]
+    where
+    f p = p m == 0
+
 instance Num Matrix where
   (*)           = mulMatrix
   (+)           = addMatrix
@@ -36,7 +46,7 @@ mulScalar :: GLfloat -> Matrix -> Matrix
 mulScalar r = mapMatrix (r *)
 
 transformPoint :: Matrix -> Point -> Point
-transformPoint m p = Point (p1 `dot` p + mat02 m) (p2 `dot` p + mat12 m)
+transformPoint m p = Point (dot p1 p + mat02 m) (dot p2 p + mat12 m)
   where
   p1 = Point (mat00 m) (mat01 m)
   p2 = Point (mat10 m) (mat11 m)

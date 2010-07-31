@@ -8,9 +8,17 @@ import Math.Utils
 data Vector = Vector !GLfloat !GLfloat
   deriving (Eq,Show,Ord)
 
+instance HasZero Vector where
+  zero                = Vector 0 0
+  isZero (Vector 0 0) = True
+  isZero _            = False
+
 instance Normalize Vector where
   normalize v@(Vector x y) = Vector (x / len) (y / len)
     where len = vectorLength v
+
+zeroVector :: Vector
+zeroVector  = Vector 0 0
 
 mapVector :: (GLfloat -> GLfloat) -> Vector -> Vector
 mapVector f (Vector x y) = Vector (f x) (f y)
@@ -33,7 +41,3 @@ pointToVector (Point x y) = Vector x y
 
 scaleVector :: GLfloat -> Vector -> Vector
 scaleVector d (Vector x y) = Vector (d*x) (d*y)
-
-isZero :: Vector -> Bool
-isZero (Vector 0 0) = True
-isZero _            = False

@@ -18,3 +18,11 @@ range (a:as) = loop a a as
                   | x < l     = loop x h xs
                   | otherwise = loop l h xs
   loop l h []                 = Just (l,h)
+
+class HasZero a where
+  zero   :: a
+  isZero :: a -> Bool
+
+instance HasZero GLfloat where
+  zero     = 0
+  isZero x = x == 0

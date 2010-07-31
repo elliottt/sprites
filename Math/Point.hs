@@ -10,6 +10,11 @@ data Point = Point
   , pointY :: !GLfloat
   } deriving (Eq,Show,Ord)
 
+instance HasZero Point where
+  zero               = Point 0 0
+  isZero (Point 0 0) = True
+  isZero _           = False
+
 instance Render Point where
   render (Point x y) = vertex2d x y
 
