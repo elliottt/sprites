@@ -68,18 +68,20 @@ isStationary ps =
 
 stepPhysicalState :: Physical a
                   => GLfloat -> PhysicalState a -> PhysicalState a
-stepPhysicalState dt ps = ps
-  { psData      = a'
-  , psAABB      = aabb'
-  , psTransform = t'
-  }
-  where
-  -- modify the translation vector of the transformation matrix
-  t            = psTransform ps
-  Vector dx dy = scaleVector dt (psAcceleration ps)
-  t'           = t { mat02 = mat02 t + dx, mat12 = mat12 t + dy }
-  a'           = transform t' (psData ps)
-  aabb'        = boundingBox a'
+stepPhysicalState dt ps
+  | isStationary ps = ps
+  | otherwise       = ps
+    { psData      = a'
+    , psAABB      = aabb'
+    , psTransform = t'
+    }
+    where
+    -- modify the translation vector of the transformation matrix
+    t            = psTransform ps
+    Vector dx dy = scaleVector dt (psAcceleration ps)
+    t'           = t { mat02 = mat02 t + dx, mat12 = mat12 t + dy }
+    a'           = transform t' (psData ps)
+    aabb'        = boundingBox a'
 
 applyImpulse :: Vector -> PhysicalState a -> PhysicalState a
 applyImpulse (Vector x y) ps = ps
