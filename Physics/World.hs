@@ -64,16 +64,17 @@ stepWorld dt0 w = w
 resolveCollision :: Collision -> Body -> Body -> (Vector,Vector)
 resolveCollision c p q =
   "resolve" `trace`
-  show v  `trace`
+  show v `trace`
   show v' `trace`
+  show nperp `trace`
+  show (vectorLength n') `trace`
   (disp,v')
   where
-  disp = collisionDirection c
-
-  n    = collisionNormal c
-  v    = psVelocity p
-
-  nperp = scaleVector (normalVector n `dotProduct` v) v
+  disp  = collisionDirection c
+  n     = collisionNormal c
+  n'    = normalVector n
+  v     = psVelocity p
+  nperp = projAlong v n'
   v'    = subtractVector nperp (scaleVector (n `dotProduct` v) n)
 
 collisions :: World -> ([(Body,[(Collision,Body)])], [Body])

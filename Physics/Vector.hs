@@ -41,6 +41,9 @@ invertVector (Vector x y) = Vector (-x) (-y)
 normalVector :: Vector -> Vector
 normalVector (Vector x y) = Vector (-y) x
 
+projAlong :: Vector -> Vector -> Vector
+projAlong u a = scaleVector ((u `dotProduct` a) / (vectorLength a) ^ 2) a
+
 -- | Turn a point into a vector.
 pointToVector :: Point -> Vector
 pointToVector (Point x y) = Vector x y
