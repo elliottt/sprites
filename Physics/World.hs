@@ -21,18 +21,20 @@ import Debug.Trace
 type Body = PhysicalState Shape
 
 data World = World
-  { worldBox     :: !AABB
-  , worldBodies  :: [PhysicalState Shape]
-  , worldGravity :: Maybe Vector
+  { worldBox         :: !AABB
+  , worldBodies      :: [PhysicalState Shape]
+  , worldGravity     :: Maybe Vector
+  , worldRestitution :: !GLfloat
   }
 
 instance Render World where
   render w = render (worldBodies w)
 
 emptyWorld w h = World
-  { worldBox     = AABB (Point (-w / 2) (h / 2)) (Point w h)
-  , worldBodies  = []
-  , worldGravity = Nothing
+  { worldBox         = AABB (Point (-w / 2) (h / 2)) (Point w h)
+  , worldBodies      = []
+  , worldGravity     = Nothing
+  , worldRestitution = 1
   }
 
 stepWorld :: Interval -> World -> World
@@ -44,7 +46,7 @@ stepWorld dt0 w = w
   (ds,ss)     = collisions w
   ds'         = mapMaybe step ds
   step (p,cs) = do
-    let resolve (c,q) = resolveCollision c p q
+    let resolve (c,q) = resolveCollision w c p q
     case map resolve cs of
 
       [] -> do
@@ -61,8 +63,8 @@ stepWorld dt0 w = w
         return p'
 
 -- | Turn a collision into a displacement vector, and a new velocity.
-resolveCollision :: Collision -> Body -> Body -> (Vector,Vector)
-resolveCollision c p q =
+resolveCollision :: World -> Collision -> Body -> Body -> (Vector,Vector)
+resolveCollision w c p q =
   "resolve" `trace`
   show v `trace`
   show v' `trace`
@@ -75,7 +77,8 @@ resolveCollision c p q =
   n'    = normalVector n
   v     = psVelocity p
   nperp = projAlong v n'
-  v'    = subtractVector nperp (scaleVector (n `dotProduct` v) n)
+  rest  = worldRestitution w
+  v'    = subtractVector nperp (scaleVector (rest * n `dotProduct` v) n)
 
 collisions :: World -> ([(Body,[(Collision,Body)])], [Body])
 collisions w = loop ds [] []

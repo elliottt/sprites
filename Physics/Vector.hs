@@ -42,7 +42,8 @@ normalVector :: Vector -> Vector
 normalVector (Vector x y) = Vector (-y) x
 
 projAlong :: Vector -> Vector -> Vector
-projAlong u a = scaleVector ((u `dotProduct` a) / (vectorLength a) ^ 2) a
+projAlong u a = scaleVector ((u `dotProduct` a) / (len * len)) a
+  where len = vectorLength a
 
 -- | Turn a point into a vector.
 pointToVector :: Point -> Vector
