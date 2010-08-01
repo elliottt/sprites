@@ -26,6 +26,11 @@ mapVector f (Vector x y) = Vector (f x) (f y)
 dotProduct :: Vector -> Vector -> GLfloat
 dotProduct (Vector x1 y1) (Vector x2 y2) = x1*x2 + y1*y2
 
+-- | The cross product doesn't exist in two dimensions -- this implementation
+-- returns the magnitude of the vector that would result in three dimensions.
+crossProduct :: Vector -> Vector -> GLfloat
+crossProduct (Vector x1 y1) (Vector x2 y2) = x1*y2 - y1*x2
+
 addVector :: Vector -> Vector -> Vector
 addVector (Vector x1 y1) (Vector x2 y2) = Vector (x1+x2) (y1+y2)
 

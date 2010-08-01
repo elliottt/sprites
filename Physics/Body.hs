@@ -1,6 +1,6 @@
 module Physics.Body (
     PhysicalState(..)
-  , mkPhysicalState
+  , staticBody, dynamicBody
   , Physical(..)
   , psVelocity
 
@@ -28,6 +28,7 @@ data PhysicalState a = PhysicalState
   , psFriction     :: !GLfloat
   , psAABB         :: !AABB
   , psStatic       :: Bool
+  , psResting      :: Bool
   , psData         :: a
   } deriving Show
 
@@ -57,20 +58,36 @@ moveBy (Vector x y) ps = ps
   where
   a' = transform (1 { mat02 = x, mat12 = y }) (psData ps)
 
-mkPhysicalState :: Physical a => a -> PhysicalState a
-mkPhysicalState a = PhysicalState
+dynamicBody :: Physical a => a -> PhysicalState a
+dynamicBody a = PhysicalState
   { psTransform    = 1
   , psAcceleration = Vector 0 0
   , psMass         = 0
   , psFriction     = 0
   , psAABB         = boundingBox a
   , psStatic       = False
+  , psResting      = False
+  , psData         = a
+  }
+
+staticBody :: Physical a => a -> PhysicalState a
+staticBody a = PhysicalState
+  { psTransform    = 1
+  , psAcceleration = Vector 0 0
+  , psMass         = 0
+  , psFriction     = 0
+  , psAABB         = boundingBox a
+  , psStatic       = True
+  , psResting      = True
   , psData         = a
   }
 
 isStationary :: PhysicalState a -> Bool
-isStationary ps =
-  psStatic ps || (isZero (psAcceleration ps) && isZero (psTransform ps))
+isStationary ps = or
+  [ psStatic ps
+  , psResting ps
+  , isZero (psAcceleration ps) && isZero (psTransform ps)
+  ]
 
 stepPhysicalState :: Physical a
                   => GLfloat -> PhysicalState a -> PhysicalState a

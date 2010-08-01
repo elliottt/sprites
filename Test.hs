@@ -17,10 +17,10 @@ import System.Exit (exitSuccess)
 main = do
   initGraphics "Test" 800 600
 
-  let ground = mkPhysicalState $ fromJust $ rectangle (Point 0 0) 10 0.1
-      wall   = mkPhysicalState $ fromJust $ rectangle (Point (-5) 5) 0.1 10
-  let square = mkPhysicalState $ fromJust $ rectangle (Point 0 5) 1 1
-  let s2     = mkPhysicalState $ fromJust $ rectangle (Point 2 5) 1 1
+  let ground = staticBody $ fromJust $ rectangle (Point 0 0) 10 0.1
+      wall   = staticBody $ fromJust $ rectangle (Point (-5) 5) 0.1 10
+  let square = dynamicBody $ fromJust $ rectangle (Point 0 5) 1 1
+  let s2     = dynamicBody $ fromJust $ rectangle (Point 2 5) 1 1
   let world  = (emptyWorld 1000 1000)
         { worldGravity     = Just (Vector 0 (-0.1))
         , worldRestitution = 0.8
@@ -28,7 +28,7 @@ main = do
 
   ref <- newIORef $ addBody ground { psStatic = True }
                   $ addBody wall   { psStatic = True }
-                  $ addBody (applyImpulse (Vector 0.01 0) square)
+                  -- $ addBody (applyImpulse (Vector 0.01 0) square)
                   $ addBody s2
                     world
 

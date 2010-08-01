@@ -196,14 +196,14 @@ checkPolygonPolygon c10 ps10 c20 ps20 =
   check c10 ps10 c20 ps20 `mplus` check c20 ps20 c10 ps10
   where
   check c1 ps1 c2 ps2 = do
-    let step (z,norm) edge = z `seq` do
+    let step s@(z,_) edge = z `seq` do
           let axis   = normalize (perpendicular edge)
           let proj p = axis `dot` p
           p1 <- range (map proj ps1)
           p2 <- range (map proj ps2)
           let o = rangeOverlap p1 p2
           guard (o >= 0)
-          if o < z then return (o,axis) else return (z,norm)
+          if o < z then return (o,axis) else return s
     (overlap,Point x y) <- foldM step (100000,Point 0 0) (edges ps1)
     let dir = normalize (pointToVector (c1 - c2))
     return Collision

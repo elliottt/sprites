@@ -1,7 +1,6 @@
 module Physics.World where
 
 import Graphics
-import Math.Matrix
 import Math.Point
 import Math.Utils
 import Physics.AABB
@@ -30,6 +29,7 @@ data World = World
 instance Render World where
   render w = render (worldBodies w)
 
+emptyWorld :: GLfloat -> GLfloat -> World
 emptyWorld w h = World
   { worldBox         = AABB (Point (-w / 2) (h / 2)) (Point w h)
   , worldBodies      = []
@@ -65,20 +65,16 @@ stepWorld dt0 w = w
 -- | Turn a collision into a displacement vector, and a new velocity.
 resolveCollision :: World -> Collision -> Body -> Body -> (Vector,Vector)
 resolveCollision w c p q =
-  "resolve" `trace`
-  show v `trace`
-  show v' `trace`
-  show nperp `trace`
-  show (vectorLength n') `trace`
-  (disp,v')
+  "resolve" `trace` show c `trace` (disp,v')
   where
   disp  = collisionDirection c
   n     = collisionNormal c
   n'    = normalVector n
   v     = psVelocity p
+  nv    = n `dotProduct` v
   nperp = projAlong v n'
   rest  = worldRestitution w
-  v'    = subtractVector nperp (scaleVector (rest * n `dotProduct` v) n)
+  v'    = subtractVector nperp (scaleVector (rest * nv) n)
 
 collisions :: World -> ([(Body,[(Collision,Body)])], [Body])
 collisions w = loop ds [] []
