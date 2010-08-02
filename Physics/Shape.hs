@@ -147,10 +147,12 @@ checkCollision :: Shape -> Shape -> Maybe Collision
 checkCollision s1 s2 =
   case (s1,s2) of
 
-    (SCircle c1 _, SCircle c2 _) -> do
-      let dir = pointToVector (c1 - c2)
+    (SCircle c1 r2, SCircle c2 r1) -> do
+      let dist = distance c1 c2
+      let dir  = pointToVector (c1 - c2)
       return Collision
         { collisionDirection = dir
+        , collisionOverlap   = dist - r1 - r2
         , collisionNormal    = dir
         }
 
@@ -158,8 +160,10 @@ checkCollision s1 s2 =
       checkPolygonCircle c1 ps c2 r2
 
     (SCircle c1 r1, SPolygon c2 ps) -> do
-      Collision v n <- checkPolygonCircle c2 ps c1 r1
-      return (Collision (invertVector v) n)
+      k <- checkPolygonCircle c2 ps c1 r1
+      return k
+        { collisionDirection = invertVector (collisionDirection k)
+        }
 
     (SPolygon c1 ps1, SPolygon c2 ps2) ->
       checkPolygonPolygon c1 ps1 c2 ps2
@@ -182,9 +186,11 @@ checkPolygonCircle c1 ps c2 r2 = do
         guard (p' >= r || p' <= l)
 
   mapM_ step (edges ps)
-  let dir = normalize (pointToVector (c1 - c2))
+  let dist = distance c1 c2
+  let dir  = normalize (pointToVector (c1 - c2))
   return Collision
-    { collisionDirection = scaleVector (distance c1 c2) dir
+    { collisionDirection = scaleVector dist dir
+    , collisionOverlap   = dist
     , collisionNormal    = Vector 0 0
     }
 
@@ -192,9 +198,18 @@ checkPolygonCircle c1 ps c2 r2 = do
 checkPolygonPolygon :: Point -> [Point]
                     -> Point -> [Point]
                     -> Maybe Collision
-checkPolygonPolygon c10 ps10 c20 ps20 =
-  check c10 ps10 c20 ps20 `mplus` check c20 ps20 c10 ps10
+checkPolygonPolygon c10 ps10 c20 ps20 = do
+  k1 <- check c10 ps10 c20 ps20
+  k2 <- check c20 ps20 c10 ps10
+  if collisionOverlap k1 <= collisionOverlap k2
+     then return k1
+     else return k2
+       { collisionDirection = invertVector (collisionDirection k2)
+       , collisionNormal    = invertVector (collisionNormal k2)
+       }
+
   where
+
   check c1 ps1 c2 ps2 = do
     let step s@(z,_) edge = z `seq` do
           let axis   = normalize (perpendicular edge)
@@ -204,9 +219,10 @@ checkPolygonPolygon c10 ps10 c20 ps20 =
           let o = rangeOverlap p1 p2
           guard (o >= 0)
           if o < z then return (o,axis) else return s
-    (overlap,Point x y) <- foldM step (100000,Point 0 0) (edges ps1)
+    (overlap,Point x y) <- foldM step (1000000,Point 0 0) (edges ps1)
     let dir = normalize (pointToVector (c1 - c2))
     return Collision
-      { collisionDirection = scaleVector overlap dir
+      { collisionDirection = dir
+      , collisionOverlap   = overlap
       , collisionNormal    = Vector x y
       }

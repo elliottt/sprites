@@ -8,6 +8,8 @@ module Physics.Body (
   , isStationary
   , stepPhysicalState
   , applyImpulse
+  , setDebug
+  , setRestitution
   ) where
 
 import Graphics
@@ -18,7 +20,7 @@ import Physics.AABB
 import Physics.Collision
 import Physics.Vector
 
-import Control.Monad (guard)
+import Control.Monad (guard,when)
 
 
 data PhysicalState a = PhysicalState
@@ -27,13 +29,17 @@ data PhysicalState a = PhysicalState
   , psMass         :: !GLfloat
   , psFriction     :: !GLfloat
   , psAABB         :: !AABB
+  , psRestitution  :: !GLfloat
   , psStatic       :: Bool
   , psResting      :: Bool
+  , psDebug        :: Bool
   , psData         :: a
   } deriving Show
 
 instance Render a => Render (PhysicalState a) where
-  render ps = render (psData ps)
+  render ps = do
+    when (psDebug ps) (render (psAABB ps))
+    render (psData ps)
 
 instance Collides a => Collides (PhysicalState a) where
   collides a b = do
@@ -67,6 +73,8 @@ dynamicBody a = PhysicalState
   , psAABB         = boundingBox a
   , psStatic       = False
   , psResting      = False
+  , psDebug        = False
+  , psRestitution  = 1
   , psData         = a
   }
 
@@ -79,6 +87,8 @@ staticBody a = PhysicalState
   , psAABB         = boundingBox a
   , psStatic       = True
   , psResting      = True
+  , psDebug        = False
+  , psRestitution  = 1
   , psData         = a
   }
 
@@ -112,3 +122,9 @@ applyImpulse (Vector x y) ps = ps
   }
   where
   t = psTransform ps
+
+setDebug :: Bool -> PhysicalState a -> PhysicalState a
+setDebug b ps = ps { psDebug = b }
+
+setRestitution :: GLfloat -> PhysicalState a -> PhysicalState a
+setRestitution r ps = ps { psRestitution = r }

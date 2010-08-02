@@ -23,13 +23,13 @@ main = do
   let s2     = dynamicBody $ fromJust $ rectangle (Point 2 5) 1 1
   let world  = (emptyWorld 1000 1000)
         { worldGravity     = Just (Vector 0 (-0.1))
-        , worldRestitution = 0.8
         }
 
   ref <- newIORef $ addBody ground { psStatic = True }
                   $ addBody wall   { psStatic = True }
-                  -- $ addBody (applyImpulse (Vector 0.01 0) square)
-                  $ addBody s2
+                  $ addBody (setDebug True $ applyImpulse (Vector 0.01 0)
+                                           $ setRestitution 0.8 square)
+                  -- $ addBody s2
                     world
 
   withEventManager $ \em -> do

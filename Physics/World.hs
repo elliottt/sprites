@@ -23,7 +23,6 @@ data World = World
   { worldBox         :: !AABB
   , worldBodies      :: [PhysicalState Shape]
   , worldGravity     :: Maybe Vector
-  , worldRestitution :: !GLfloat
   }
 
 instance Render World where
@@ -34,7 +33,6 @@ emptyWorld w h = World
   { worldBox         = AABB (Point (-w / 2) (h / 2)) (Point w h)
   , worldBodies      = []
   , worldGravity     = Nothing
-  , worldRestitution = 1
   }
 
 stepWorld :: Interval -> World -> World
@@ -64,17 +62,19 @@ stepWorld dt0 w = w
 
 -- | Turn a collision into a displacement vector, and a new velocity.
 resolveCollision :: World -> Collision -> Body -> Body -> (Vector,Vector)
-resolveCollision w c p q =
-  "resolve" `trace` show c `trace` (disp,v')
+resolveCollision w c p q = debug (disp,v')
   where
-  disp  = collisionDirection c
+  disp  = scaleVector (collisionOverlap c) n
   n     = collisionNormal c
   n'    = normalVector n
   v     = psVelocity p
   nv    = n `dotProduct` v
   nperp = projAlong v n'
-  rest  = worldRestitution w
+  rest  = psRestitution p
   v'    = subtractVector nperp (scaleVector (rest * nv) n)
+
+  debug r | psDebug p = show c `trace` r
+          | otherwise = r
 
 collisions :: World -> ([(Body,[(Collision,Body)])], [Body])
 collisions w = loop ds [] []
