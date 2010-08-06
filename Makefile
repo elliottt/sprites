@@ -1,11 +1,16 @@
 include rules.mk
-include sprite.mk
-include cbits/sprite.mk
 
 $(eval $(call hi-rule))
 
+include sprite.mk
+include cbits/sprite.mk
+
+.DEFAULT : all
 .PHONY : all
-all : all_cbits Test
+all : cbits_all Test
+	echo $^
 
 .PHONY : clean
-clean : clean_cbits clean_$(GHC_DIR)
+clean : cbits_all clean_$(GHC_DIR)
+
+

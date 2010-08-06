@@ -6,7 +6,7 @@ import Graphics
 
 -- | An axis aligned bounding box.  The second point is relative to the first,
 -- specifying the extent of the bounding box.
-data AABB = AABB !Point !Point deriving Show
+data AABB = AABB !(Point GLfloat) !(Point GLfloat) deriving Show
 
 -- | Render an AABB as a transparent rectangle, so that whatever is underneath
 -- will still be visible.  This instance will most likely only be used for

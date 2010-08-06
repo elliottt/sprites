@@ -36,6 +36,8 @@ module Graphics (
   , GL.PrimitiveMode(..)
   ) where
 
+import Math.Utils
+
 import Foreign.C.Types (CInt)
 import Foreign.ForeignPtr (withForeignPtr)
 import Foreign.Ptr (Ptr)
