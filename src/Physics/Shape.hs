@@ -13,15 +13,11 @@ module Physics.Shape (
   ) where
 
 import Graphics
-import Math.Line
-import Math.Matrix
-import Math.Normalize
-import Math.Point
+import Math.AffinePlane
 import Math.Utils
 import Physics.AABB
 import Physics.Body
 import Physics.Collision
-import Physics.Vector
 
 import Control.Applicative (Applicative(..),(<$>))
 import Control.Monad (guard,foldM,when,zipWithM,forM_)

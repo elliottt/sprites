@@ -1,13 +1,12 @@
 module Physics.World where
 
 import Graphics
-import Math.Point
+import Math.AffinePlane
 import Math.Utils
 import Physics.AABB
 import Physics.Body
 import Physics.Collision
 import Physics.Shape
-import Physics.Vector
 import Time
 
 import Control.Monad (guard)

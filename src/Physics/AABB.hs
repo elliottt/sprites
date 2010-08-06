@@ -1,8 +1,8 @@
 module Physics.AABB where
 
-import Graphics
-import Math.Point
+import Math.AffinePlane
 import Math.Utils
+import Graphics
 
 -- | An axis aligned bounding box.  The second point is relative to the first,
 -- specifying the extent of the bounding box.

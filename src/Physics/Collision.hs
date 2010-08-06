@@ -1,17 +1,16 @@
 module Physics.Collision where
 
-import Math.Point
+import Math.AffinePlane
 import Math.Utils
-import Physics.Vector
 
 class Collides a where
   collides   :: a -> a -> Maybe Collision
   --contactSet :: a -> a -> Maybe ContactSet
 
 data Collision = Collision
-  { collisionDirection :: !Vector
+  { collisionDirection :: !(Vector GLfloat)
   , collisionOverlap   :: !GLfloat
-  , collisionNormal    :: !Vector
+  , collisionNormal    :: !(Vector GLfloat)
   , collisionProjInfo  :: !ProjInfo
   } deriving Show
 

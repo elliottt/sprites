@@ -1,4 +1,4 @@
-module AffinePlane where
+module Math.AffinePlane where
 
 
 -- Points ----------------------------------------------------------------------

@@ -13,12 +13,10 @@ module Physics.Body (
   ) where
 
 import Graphics
-import Math.Matrix
-import Math.Point
+import Math.AffinePlane
 import Math.Utils
 import Physics.AABB
 import Physics.Collision
-import Physics.Vector
 
 import Control.Monad (guard,when)
 

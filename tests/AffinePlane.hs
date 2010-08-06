@@ -1,53 +1,66 @@
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
-module Test where
+module Tests where
 
-import Event
-import Graphics
-import Math.Point
-import Physics.Body
-import Physics.Shape
-import Physics.Vector
-import Physics.World
+import AffinePlane
 
-import Data.IORef (newIORef,writeIORef,readIORef)
-import Data.Maybe (fromJust)
-import System.Exit (exitSuccess)
+import Control.Monad (ap)
+import Test.QuickCheck
 
-main = do
-  initGraphics "Test" 800 600
+instance Integral a => Arbitrary (Point a) where
+  arbitrary = Point `fmap` arbitrarySizedIntegral
+                    `ap`   arbitrarySizedIntegral
 
-  let ground = staticBody $ fromJust $ rectangle (Point 0 0) 10 0.1
-      wall   = staticBody $ fromJust $ rectangle (Point (-5) 5) 0.1 10
-  let square = dynamicBody $ fromJust $ rectangle (Point 0 5) 1 1
-  let s2     = dynamicBody $ fromJust $ rectangle (Point 2 5) 1 1
-  let world  = (emptyWorld 1000 1000)
-        { worldGravity     = Just (Vector 0 (-1.0))
-        }
+instance Integral a => Arbitrary (Vector a) where
+  arbitrary = Vector `fmap` arbitrarySizedIntegral
+                     `ap`   arbitrarySizedIntegral
 
-  ref <- newIORef $ addBody ground { psStatic = True }
-                  $ addBody wall   { psStatic = True }
-                  $ addBody (setDebug True $ applyImpulse (Vector (-0.01) 0)
-                                           $ setRestitution 0.8 square)
-                  -- $ addBody s2
-                    world
+runTests = mapM_ run tests
+  where
+  tests     = theorems ++ identities
+  run (n,m) = label n >> m
+  label n   = do
+    let len = length n
+    putStr "-- "
+    putStr n
+    putStr " "
+    putStrLn (replicate (76 - len) '-')
 
-  withEventManager $ \em -> do
+theorems =
+  [ ("prop_HeadToTail",   quickCheck prop_HeadToTail)
+  , ("prop_DotSymmetric", quickCheck prop_DotSymmetric)
+  , ("prop_DotBiLinear",  quickCheck prop_DotBiLinear)
+  , ("prop_DotPositive",  quickCheck prop_DotPositive)
+  ]
 
-    setLineWidth 2
-    setPointSize 2
-    color3 1 1 1
+prop_HeadToTail p q r = (p -. q) +^ (q -. r) == p -. r
 
-    em `listen` \ QuitEvent -> exitSuccess
+prop_DotSymmetric u v = u <.> v == v <.> u
 
-    em `listen` \ (TickEvent now delta) -> do
-      w <- readIORef ref
-      let w' = stepWorld delta w
-      writeIORef ref w'
+prop_DotBiLinear :: Int -> Vector Int -> Int -> Vector Int -> Vector Int -> Bool
+prop_DotBiLinear a u b v w =
+  (a *^ u) +^ (b *^ v) <.> w == a * (u <.> w) + b * (v <.> w)
 
-      clearScreen
-      translate 0 (-5) (-20)
-      render w'
-      updateScreen
+prop_DotPositive v = v /= zeroV ==> v <.> v >= 0
 
-    eventLoop em
+
+identities =
+  [ ("prop_SubIdent",         quickCheck prop_SubIdent)
+  , ("prop_NegSubIdent",      quickCheck prop_NegSubIdent)
+  , ("prop_VecAddSubIdent",   quickCheck prop_VecAddSubIdent)
+  , ("prop_PointVecSubIdent", quickCheck prop_PointVecSubIdent)
+  , ("prop_PointAddSubIdent", quickCheck prop_PointAddSubIdent)
+  , ("prop_PointVecSubAdd",   quickCheck prop_PointVecSubAdd)
+  ]
+
+prop_SubIdent q = q -. q == zeroV
+
+prop_NegSubIdent r q = r -. q == negV (q -. r)
+
+prop_VecAddSubIdent v q r = v +^ (q -. r) == (q .+^ v) -. r
+
+prop_PointVecSubIdent q r v = q -. (r .+^ v) == (q -. r) -^ v
+
+prop_PointAddSubIdent p q = p == q .+^ (p -. q)
+
+prop_PointVecSubAdd q v r w = (q .+^ v) -. (r .+^ w) == (q -. r) +^ (v -^ w)
