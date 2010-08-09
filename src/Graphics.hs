@@ -1,4 +1,5 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Graphics (
     -- * OpenGL/SDL
@@ -36,6 +37,7 @@ module Graphics (
   , GL.PrimitiveMode(..)
   ) where
 
+import Math.AffinePlane
 import Math.Utils
 
 import Foreign.C.Types (CInt)
@@ -55,7 +57,7 @@ initGraphics t w h = do
 
   -- SDL
   SDL.setCaption t ""
-  SDL.setVideoMode w h 24 [SDL.OpenGL]
+  _ <- SDL.setVideoMode w h 24 [SDL.OpenGL]
 
   -- OpenGL
   GL.clearColor           $= GL.Color4 0 0 0 0
@@ -146,6 +148,12 @@ instance Render a => Render (Maybe a) where
 
 instance Render a => Render [a] where
   render = mapM_ render
+
+instance Render (Point GLfloat) where
+  render (Point x y) = vertex2d x y
+
+instance Render (Line GLfloat) where
+  render (Line a b) = render a >> render b
 
 
 -- Texturing -------------------------------------------------------------------

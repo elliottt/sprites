@@ -1,12 +1,19 @@
 module Math.AffinePlane where
 
+import Math.Utils
+
 
 -- Points ----------------------------------------------------------------------
 
 data Point a = Point !a !a
   deriving (Show,Eq)
 
-distance a b = magnitude (a -. b)
+instance HasZero a => HasZero (Point a) where
+  zero               = Point zero zero
+  isZero (Point x y) = isZero x && isZero y
+
+distance :: Floating a => Point a -> Point a -> a
+distance a b = norm (a -. b)
 
 -- | The origin.
 zeroP :: Num a => Point a
@@ -33,17 +40,20 @@ infix 6 .-^
 data Vector a = Vector !a !a
   deriving (Show,Eq)
 
--- | The zero vector.
-zeroV :: Num a => Vector a
-zeroV  = Vector 0 0
+instance HasZero a => HasZero (Vector a) where
+  zero                = Vector zero zero
+  isZero (Vector x y) = isZero x && isZero y
 
--- | Calculate the magnitude of a vector.
-magnitude :: Floating a => Vector a -> a
-magnitude v = sqrt (v <.> v)
+-- | Calculate the norm of a vector.
+norm :: Floating a => Vector a -> a
+norm v = sqrt (v <.> v)
 
 -- | Negate a vector.
 negV :: Num a => Vector a -> Vector a
 negV (Vector x y) = Vector (-x) (-y)
+
+normalV :: Num a => Vector a -> Vector a
+normalV (Vector x y) = Vector (-y) x
 
 -- | Add two vectors.
 (+^) :: Num a => Vector a -> Vector a -> Vector a
@@ -58,12 +68,18 @@ infix 5 *^
 -- | Subtract two vectors
 (-^) :: Num a => Vector a -> Vector a -> Vector a
 Vector a b -^ Vector c d = Vector (a-c) (b-d)
-infix 6 -^
+infixl 6 -^
 
 -- | The inner product of two vectors.
 (<.>) :: Num a => Vector a -> Vector a -> a
 Vector a b <.> Vector c d = a * c + b * d
 infix 5 <.>
+
+-- | Project one vector along another.
+projAlong :: Floating a => Vector a -> Vector a -> Vector a
+projAlong a b = ((a <.> b) / (m * m)) *^ b
+  where
+  m = norm b
 
 -- | The affine combination
 combination :: Num a => a -> Point a -> a -> Point a -> Point a
@@ -71,7 +87,11 @@ combination _a1 p a2 q = p .+^ (a2 *^ (q -. p))
 
 -- | Turn a vector into its unit version.
 unitV :: Floating a => Vector a -> Vector a
-unitV v = (1 / magnitude v) *^ v
+unitV v
+  | n == 0    = v
+  | otherwise = (1 / norm v) *^ v
+  where
+  n = norm v
 
 
 -- Affine Transformations ------------------------------------------------------
@@ -80,6 +100,14 @@ data Matrix a = Matrix
   { mat00 :: !a, mat01 :: !a, mat02 :: !a
   , mat10 :: !a, mat11 :: !a, mat12 :: !a
   } deriving (Eq,Show)
+
+instance HasZero a => HasZero (Matrix a) where
+  zero = Matrix
+    { mat00 = zero, mat01 = zero, mat02 = zero
+    , mat10 = zero, mat11 = zero, mat12 = zero
+    }
+  isZero m = isZero (mat00 m) && isZero (mat01 m) && isZero (mat02 m) &&
+             isZero (mat10 m) && isZero (mat11 m) && isZero (mat12 m)
 
 idM :: Num a => Matrix a
 idM  = Matrix
@@ -94,3 +122,9 @@ transformPoint m (Point a b) = o .+^ ((a *^ r1) +^ (b *^ r2))
   r1 = Vector (mat00 m) (mat10 m)
   r2 = Vector (mat10 m) (mat11 m)
   o  = Point (mat02 m) (mat12 m)
+
+
+-- Lines -----------------------------------------------------------------------
+
+data Line a = Line !(Point a) !(Point a)
+  deriving (Eq,Show)

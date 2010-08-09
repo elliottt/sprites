@@ -13,10 +13,13 @@ Test_SLASH_MODS := Math/AffinePlane  \
 Test_HS_SOURCES	:= $(addprefix src/,$(addsuffix .hs,$(Test_SLASH_MODS)))
 Test_HS_OBJS	:= $(patsubst src/%.hs,$(GHC_DIR)/%.o,$(Test_HS_SOURCES))
 
+-include $(GHC_DIR)/Test-depend
+
 $(GHC_DIR)/%.o : src/%.hs
 	$(GHC) -c $<
 
-$(GHC_DIR)/Test-depend :
+$(GHC_DIR)/Test-depend : $(GHC_DIR)
+	touch $@
 	$(GHC) -M -dep-makefile $@ $(Test_HS_SOURCES)
 
 Test : cbits/sdl-opengl.o $(GHC_DIR) $(Test_HS_OBJS) Test.hs
@@ -24,5 +27,3 @@ Test : cbits/sdl-opengl.o $(GHC_DIR) $(Test_HS_OBJS) Test.hs
 
 clean_Test :
 	$(RM) Test
-
--include $(GHC_DIR)/Test-depend

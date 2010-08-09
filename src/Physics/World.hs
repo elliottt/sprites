@@ -21,7 +21,7 @@ type Body = PhysicalState Shape
 data World = World
   { worldBox         :: !AABB
   , worldBodies      :: [PhysicalState Shape]
-  , worldGravity     :: Maybe Vector
+  , worldGravity     :: Maybe (Vector GLfloat)
   }
 
 instance Render World where
@@ -52,7 +52,7 @@ stepWorld dt0 w = w
         return p'
 
       vs -> do
-        let (i,v') = foldl1 (\(x,y) (a,b) -> (addVector x a, addVector y b)) vs
+        let (i,v') = foldl1 (\(x,y) (a,b) -> (x +^ a, y +^ b)) vs
         let p'     = stepPhysicalState dt
                    $ applyImpulse v'
                    $ moveBy i p
@@ -60,17 +60,18 @@ stepWorld dt0 w = w
         return p'
 
 -- | Turn a collision into a displacement vector, and a new velocity.
-resolveCollision :: World -> Collision -> Body -> Body -> (Vector,Vector)
+resolveCollision :: World -> Collision -> Body -> Body
+                 -> (Vector GLfloat,Vector GLfloat)
 resolveCollision w c p q = debug (disp,v')
   where
-  disp  = scaleVector (collisionOverlap c) n
+  disp  = collisionOverlap c *^ n
   n     = collisionNormal c
-  n'    = normalVector n
+  n'    = normalV n
   v     = psVelocity p
-  nv    = n `dotProduct` v
+  nv    = n <.> v
   nperp = projAlong v n'
   rest  = psRestitution p
-  v'    = subtractVector nperp (scaleVector (rest * nv) n)
+  v'    = nperp -^ (rest * nv *^ n)
 
   debug r | psDebug p = show c `trace` r
           | otherwise = r
@@ -93,6 +94,6 @@ addBody :: Body -> World -> World
 addBody b w = w { worldBodies = b' : worldBodies w }
   where
   b' | psStatic b = b
-     | otherwise  = b { psAcceleration = addVector (psAcceleration b)
-                                       $ fromMaybe zeroVector
+     | otherwise  = b { psAcceleration = (+^) (psAcceleration b)
+                                       $ fromMaybe zero
                                        $ worldGravity w }

@@ -18,12 +18,12 @@ import Math.Utils
 import Physics.AABB
 import Physics.Collision
 
-import Control.Monad (guard,when)
+import Control.Monad (guard)
 
 
 data PhysicalState a = PhysicalState
-  { psTransform    :: !Matrix
-  , psAcceleration :: !Vector
+  { psTransform    :: !(Matrix GLfloat)
+  , psAcceleration :: !(Vector GLfloat)
   , psMass         :: !GLfloat
   , psFriction     :: !GLfloat
   , psAABB         :: !AABB
@@ -46,17 +46,18 @@ instance Collides a => Collides (PhysicalState a) where
 
 class Physical a where
   boundingBox :: a -> IO AABB
-  transform   :: Matrix -> a -> IO ()
-  position    :: a -> IO Point
+  transform   :: Matrix GLfloat -> a -> IO ()
+  position    :: a -> IO (Point GLfloat)
 
-psVelocity :: PhysicalState a -> Vector
+psVelocity :: PhysicalState a -> (Vector GLfloat)
 psVelocity ps = Vector (mat02 t) (mat12 t)
   where
   t = psTransform ps
 
-moveBy :: Physical a => Vector -> PhysicalState a -> IO (PhysicalState a)
+moveBy :: Physical a
+       => Vector GLfloat -> PhysicalState a -> IO (PhysicalState a)
 moveBy (Vector x y) ps = do
-  transform (1 { mat02 = x, mat12 = y }) (psData ps)
+  transform (idM { mat02 = x, mat12 = y }) (psData ps)
   bb' <- boundingBox (psData ps)
   return ps { psAABB = bb' }
 
@@ -64,7 +65,7 @@ dynamicBody :: Physical a => a -> IO (PhysicalState a)
 dynamicBody a = do
   aabb <- boundingBox a
   return PhysicalState
-    { psTransform    = 1
+    { psTransform    = idM
     , psAcceleration = Vector 0 0
     , psMass         = 0
     , psFriction     = 0
@@ -80,7 +81,7 @@ staticBody :: Physical a => a -> IO (PhysicalState a)
 staticBody a = do
   aabb <- boundingBox a
   return PhysicalState
-    { psTransform    = 1
+    { psTransform    = idM
     , psAcceleration = Vector 0 0
     , psMass         = 0
     , psFriction     = 0
@@ -106,7 +107,7 @@ stepPhysicalState dt ps
   | otherwise       = do
     -- modify the translation vector of the transformation matrix
     let t            = psTransform ps
-        Vector dx dy = scaleVector dt (psAcceleration ps)
+        Vector dx dy = dt *^ psAcceleration ps
         t'           = t { mat02 = mat02 t + dx, mat12 = mat12 t + dy }
     transform t (psData ps)
     aabb' <- boundingBox (psData ps)
@@ -115,7 +116,7 @@ stepPhysicalState dt ps
       , psTransform = t'
       }
 
-applyImpulse :: Vector -> PhysicalState a -> PhysicalState a
+applyImpulse :: Vector GLfloat -> PhysicalState a -> PhysicalState a
 applyImpulse (Vector x y) ps = ps
   { psTransform = t { mat02 = x, mat12 = y }
   }
