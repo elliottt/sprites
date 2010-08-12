@@ -77,9 +77,7 @@ infix 5 <.>
 
 -- | Project one vector along another.
 projAlong :: Floating a => Vector a -> Vector a -> Vector a
-projAlong a b = ((a <.> b) / (m * m)) *^ b
-  where
-  m = norm b
+projAlong a b@(Vector x y) = ((a <.> b) / (x*x + y*y)) *^ b
 
 -- | The affine combination
 combination :: Num a => a -> Point a -> a -> Point a -> Point a
@@ -128,3 +126,6 @@ transformPoint m (Point a b) = o .+^ ((a *^ r1) +^ (b *^ r2))
 
 data Line a = Line !(Point a) !(Point a)
   deriving (Eq,Show)
+
+lineV :: Num a => Line a -> Vector a
+lineV (Line a b) = b -. a

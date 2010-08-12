@@ -6,7 +6,7 @@ import Graphics
 
 -- | An axis aligned bounding box.  The second point is relative to the first,
 -- specifying the extent of the bounding box.
-data AABB = AABB !(Point GLfloat) !(Point GLfloat) deriving Show
+data AABB = AABB !(Point GLfloat) !GLfloat !GLfloat deriving Show
 
 -- | Render an AABB as a transparent rectangle, so that whatever is underneath
 -- will still be visible.  This instance will most likely only be used for
@@ -22,7 +22,7 @@ instance Render AABB where
       vertex2d x1 y1
 
 aabbBounds :: AABB -> ((GLfloat,GLfloat),(GLfloat,GLfloat))
-aabbBounds (AABB (Point x y) (Point w h)) = ((x,x+w),(y-h,y))
+aabbBounds (AABB (Point x y) w h) = ((x,x+w),(y-h,y))
 
 aabbOverlap :: AABB -> AABB -> Bool
 aabbOverlap b1 b2 =

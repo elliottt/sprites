@@ -25,6 +25,7 @@ import Physics.AABB
 import Control.Applicative (Applicative(..),(<$>))
 import Control.Monad (when,zipWithM_,forM_,unless)
 import Data.IORef (IORef,newIORef,readIORef,writeIORef)
+import Data.Ord (comparing)
 import qualified Control.Monad.Primitive as Prim
 import qualified Data.Vector.Mutable     as Vec
 
@@ -33,6 +34,7 @@ import qualified Data.Vector.Mutable     as Vec
 
 type Index    = Int
 type Vertex   = Point GLfloat
+type Edge     = Line GLfloat
 type Vertices = Vec.MVector (Prim.PrimState IO) Vertex
 
 data Shape
@@ -117,9 +119,6 @@ transformShape mat (SCircle cref rref) = do
   let move = transformPoint mat
   c <- readIORef cref
   writeIORef cref $! move c
-  r <- readIORef rref
-  let Point r' _ = move (Point r 0)
-  writeIORef rref $! r'
 transformShape mat (SPolygon ref vs) = do
   let move = transformPoint mat
   c <- readIORef ref
@@ -134,10 +133,10 @@ transformShape mat (SPolygon ref vs) = do
 getVertex :: Vertices -> Index -> IO Vertex
 getVertex vs i = Vec.read vs (i `mod` Vec.length vs)
 
-getEdge :: Vertices -> Index -> IO (Line GLfloat)
-getEdge vs i = Line <$> getVertex vs i <*> getVertex vs i
+getEdge :: Vertices -> Index -> IO Edge
+getEdge vs i = Line <$> getVertex vs i <*> getVertex vs (i+1)
 
-polyEdges :: Vertices -> IO [Line GLfloat]
+polyEdges :: Vertices -> IO [Edge]
 polyEdges vs = loop 0
   where
   len = Vec.length vs
@@ -149,29 +148,30 @@ polyEdges vs = loop 0
 
 shapeAABB :: Shape -> IO AABB
 shapeAABB s = do
-  (l,r) <- projectOnto s (Vector 1 0)
-  (b,t) <- projectOnto s (Vector 0 1)
-  return $! AABB (Point l t) (Point (r - l) (t - b))
+  (l,r) <- projectOnto' s (Vector 1 0)
+  (b,t) <- projectOnto' s (Vector 0 1)
+  let w = r - l
+      h = t - b
+  return $! AABB (Point l t) w h
 
--- | Project a shape onto a vector, producing a one-dimensional line.
+-- | Project a shape onto a vector, yielding a one-dimensional line.
 projectOnto :: Shape -> Vector GLfloat -> IO (GLfloat,GLfloat)
-projectOnto s u = projectOnto' s (unitV u)
+projectOnto s v = projectOnto' s (unitV v)
 
 -- | Project a shape onto a unit-vector, producing a one-dimensional line.
 projectOnto' :: Shape -> Vector GLfloat -> IO (GLfloat,GLfloat)
 projectOnto' (SCircle cref rref) u = do
   c <- readIORef cref
   r <- readIORef rref
-  let v  = u +^ (c -. zero)
-      h  = r *^ v
-      l  = negV h
-      l' = l <.> u
-      h' = h <.> u
-  l' `seq` h' `seq` return (l',h')
+  let v  = c -. zero
+      r' = r *^ u
+      h  = v +^ r'
+      l  = v -^ r'
+  l `seq` h `seq` return (l <.> u,h <.> u)
 projectOnto' (SPolygon cref vs) u = do
   c <- readIORef cref
   let nu     = norm u
-      proj v = (v -. zero) <.> u
+      proj p = ((p -. zero) <.> u) / (nu * nu)
       len    = Vec.length vs
       loop l h n
         | n == len  = return (l,h)
@@ -182,16 +182,73 @@ projectOnto' (SPolygon cref vs) u = do
                    | a > h     = loop l a (n+1)
                    | otherwise = loop l h (n+1)
           rest
-
   x0 <- getVertex vs 0
   let a0 = proj x0
   loop a0 a0 1
 
+test = do
+  s <- rectangle (Point 2 2) 2 2
+  print =<< projectOnto' s (Vector 0 1)
+
+data Collision = Collision
+  { collisionIntersect :: !Intersection
+  , collisionOverlap   :: !GLfloat
+  , collisionNormal    :: !(Vector GLfloat)
+  } deriving (Eq,Show)
+
+invertCollision :: Collision -> Collision
+invertCollision c = c { collisionNormal = negV (collisionNormal c) }
 
 data Intersection
-  = InersectPoint !(Point GLfloat)
+  = IntersectPoint !(Point GLfloat)
   | IntersectLine !(Line GLfloat)
     deriving (Eq,Show)
 
-shapeIntersection :: Shape -> Shape -> IO (Maybe Intersection)
-shapeIntersection s1 s2 = error "shapeIntersection"
+-- | Check for collision between two shapes.
+shapeCollision :: Shape -> Shape -> IO (Maybe Collision)
+shapeCollision s1 s2 =
+  case (s1,s2) of
+    (SCircle cref1 rref1, SCircle cref2 rref2) ->
+      circleCircleCollision cref1 rref1 cref2 rref2
+
+    (SCircle cref1 rref, SPolygon cref2 vs) -> do
+      mb <- polygonCircleCollision cref2 vs cref1 rref
+      return (invertCollision <$> mb)
+
+    (SPolygon cref1 vs, SCircle cref2 rref) ->
+      polygonCircleCollision cref1 vs cref2 rref
+
+    (SPolygon cref1 vs1, SPolygon cref2 vs2) ->
+      polygonPolygonCollision cref1 vs1 cref2 vs2
+
+-- | Check for collision between two circles.
+circleCircleCollision :: IORef (Point GLfloat) -> IORef GLfloat
+                      -> IORef (Point GLfloat) -> IORef GLfloat
+                      -> IO (Maybe Collision)
+circleCircleCollision cref1 rref1 cref2 rref2 = do
+  c1 <- readIORef cref1
+  r1 <- readIORef rref1
+  c2 <- readIORef cref2
+  r2 <- readIORef rref2
+  let d       = r1 + r2
+      v       = c2 -. c1
+      v'      = unitV v
+      overlap = d - norm v
+      p       = c1 .+^ (r1 *^ v')
+  if overlap >= 0
+     then return (Just (Collision (IntersectPoint p) overlap v'))
+     else return Nothing
+
+-- | Check for collision between a polygon and a circle
+polygonCircleCollision :: IORef (Point GLfloat) -> Vertices
+                       -> IORef (Point GLfloat) -> IORef GLfloat
+                       -> IO (Maybe Collision)
+polygonCircleCollision cref1 vs cref2 rref = do
+  error "polygonCircleCollision"
+
+-- | Check for collision between two polygons
+polygonPolygonCollision :: IORef (Point GLfloat) -> Vertices
+                        -> IORef (Point GLfloat) -> Vertices
+                        -> IO (Maybe Collision)
+polygonPolygonCollision cref1 vs1 cref2 vs2 = do
+  error "polygonPolygonCollision"
