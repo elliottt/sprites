@@ -186,10 +186,6 @@ projectOnto' (SPolygon cref vs) u = do
   let a0 = proj x0
   loop a0 a0 1
 
-test = do
-  s <- rectangle (Point 2 2) 2 2
-  print =<< projectOnto' s (Vector 0 1)
-
 data Collision = Collision
   { collisionIntersect :: !Intersection
   , collisionOverlap   :: !GLfloat
@@ -252,3 +248,34 @@ polygonPolygonCollision :: IORef (Point GLfloat) -> Vertices
                         -> IO (Maybe Collision)
 polygonPolygonCollision cref1 vs1 cref2 vs2 = do
   error "polygonPolygonCollision"
+
+withinZero :: GLfloat -> Bool
+withinZero z = abs z <= 0.0001
+
+-- | Find a minimal point on a polygon, relative to the axis provided.
+minimalPoint :: Vertex -> Vector GLfloat -> Vertices -> IO (GLfloat,Index,Bool)
+minimalPoint p d vs = do
+  (p0,i0,u0) <- step 0
+  loop 1 p0 i0 u0
+
+  where
+
+  nd = norm d
+
+  -- edges produce a unique value of False, as the contact isn't defined by a
+  -- single point.
+  step i = do
+    e@(Line a _) <- getEdge vs i
+    let proj   = ((a -. p) <.> d) / nd
+        unique = not (withinZero (lineV e <.> d))
+    return (proj,i,unique)
+
+  len = Vec.length vs
+  loop n p i u
+    | n == len  = return (p,i,u)
+    | otherwise = do
+      (p',i',u') <- step n
+      -- keep the stepped side if the contact was with an edge
+      if p' < p || p' == p && not u'
+         then loop (n+1) p' i' u'
+         else loop (n+1) p  i  u

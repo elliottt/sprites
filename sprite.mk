@@ -22,7 +22,7 @@ $(GHC_DIR)/Test-depend : $(GHC_DIR)
 	touch $@
 	$(GHC) -M -dep-makefile $@ $(Test_HS_SOURCES)
 
-Test : cbits/sdl-opengl.o $(GHC_DIR) $(Test_HS_OBJS) Test.hs
+Test : cbits/sdl-opengl.o $(GHC_DIR)/Test-depend $(Test_HS_OBJS) Test.hs
 	$(GHC) --make Test.hs cbits/sdl-opengl.o
 
 clean_Test :

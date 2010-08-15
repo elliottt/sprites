@@ -48,6 +48,10 @@ instance HasZero a => HasZero (Vector a) where
 norm :: Floating a => Vector a -> a
 norm v = sqrt (v <.> v)
 
+-- | Calculate the squared norm of a vector.
+norm2 :: Num a => Vector a -> a
+norm2 (Vector x y) = x*x + y*y
+
 -- | Negate a vector.
 negV :: Num a => Vector a -> Vector a
 negV (Vector x y) = Vector (-x) (-y)
