@@ -260,15 +260,17 @@ minimalPoint p d vs = do
 
   where
 
-  nd = norm d
+  -- the projection of points along the line defined by p and d.
+  nd     = norm2 d
+  proj x = ((x -. p) <.> d) / nd
 
   -- edges produce a unique value of False, as the contact isn't defined by a
   -- single point.
   step i = do
     e@(Line a _) <- getEdge vs i
-    let proj   = ((a -. p) <.> d) / nd
+    let p      = proj a
         unique = not (withinZero (lineV e <.> d))
-    return (proj,i,unique)
+    return (p,i,unique)
 
   len = Vec.length vs
   loop n p i u
@@ -279,3 +281,28 @@ minimalPoint p d vs = do
       if p' < p || p' == p && not u'
          then loop (n+1) p' i' u'
          else loop (n+1) p  i  u
+
+data Interval = Interval
+  { intLow  :: !End
+  , intHigh :: !End
+  } deriving Show
+
+data End
+  = EndPoint !Vertex !GLfloat
+  | EndLine  !Edge   !GLfloat
+    deriving Show
+
+polygonInterval :: Vertex -> Vector GLfloat -> Vertices -> IO Interval
+polygonInterval p d vs = do
+  (pl,il,ul)     <- minimalPoint p d vs
+  el@(Line vl _) <- getEdge vs il
+  let l | ul        = EndPoint vl pl
+        | otherwise = EndLine  el pl
+  (ph,ih,uh)     <- minimalPoint p (negV d) vs
+  eh@(Line vh _) <- getEdge vs ih
+  let h | uh        = EndPoint vh ph
+        | otherwise = EndLine  eh ph
+  return Interval
+    { intLow  = l
+    , intHigh = h
+    }
