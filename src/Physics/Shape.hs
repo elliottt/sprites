@@ -292,6 +292,21 @@ data End
   | EndLine  !Edge   !GLfloat
     deriving Show
 
+circleInterval :: Vertex -> Vector GLfloat
+               -> IORef (Point GLfloat) -> IORef GLfloat
+               -> IO Interval
+circleInterval p d cref rref = do
+  c <- readIORef cref
+  r <- readIORef rref
+  let rd = r *^ d
+      v  = c -. p
+      lv = v -^ rd
+      hv = v +^ rd
+  return Interval
+    { intLow  = EndPoint (zero .+^ lv) (lv <.> d)
+    , intHigh = EndPoint (zero .+^ hv) (hv <.> d)
+    }
+
 polygonInterval :: Vertex -> Vector GLfloat -> Vertices -> IO Interval
 polygonInterval p d vs = do
   (pl,il,ul)     <- minimalPoint p d vs
