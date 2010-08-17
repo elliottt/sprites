@@ -23,7 +23,7 @@ import Math.Utils
 import Physics.AABB
 
 import Control.Applicative (Applicative(..),(<$>))
-import Control.Monad (when,zipWithM_,forM_,unless)
+import Control.Monad (when,zipWithM_,forM_,unless,join)
 import Data.IORef (IORef,newIORef,readIORef,writeIORef)
 import Data.Ord (comparing)
 import qualified Control.Monad.Primitive as Prim
@@ -247,10 +247,108 @@ polygonPolygonCollision :: IORef (Point GLfloat) -> Vertices
                         -> IORef (Point GLfloat) -> Vertices
                         -> IO (Maybe Collision)
 polygonPolygonCollision cref1 vs1 cref2 vs2 = do
-  error "polygonPolygonCollision"
+
+  int1 <- check vs1 vs2
+  print int1
+
+  int2 <- check vs2 vs1
+  print int2
+
+  error "fail"
+
+  where
+
+  check vs cvs = do
+    int <- step 0 vs cvs
+    loop vs cvs 1 (Vec.length vs) int
+
+  step i vs cvs = do
+    e@(Line p _) <- getEdge vs i
+    let d = unitV (normalV (lineV e))
+    int <- polygonInterval p d cvs
+    print e
+    print d
+    print p
+    print int
+    return int
+
+  loop vs cvs i end int
+    | i == end                  = return (Just int)
+    | not (intervalOverlap int) = return Nothing
+    | otherwise                 = do
+      int' <- step i vs cvs
+      if lowProjection int' < lowProjection int
+         then loop vs cvs (i+1) end int'
+         else loop vs cvs (i+1) end int
+
+test = join (shapeCollision <$> rect (Point 0 0) <*> rect (Point 1 1))
+  where
+  rect p = rectangle p 2 2
+
+-- Interval Finding ------------------------------------------------------------
 
 withinZero :: GLfloat -> Bool
 withinZero z = abs z <= 0.0001
+
+data Interval = Interval
+  { intLow  :: !End
+  , intHigh :: !End
+  } deriving Show
+
+lowProjection, highProjection :: Interval -> GLfloat
+lowProjection  = endProjection . intLow
+highProjection = endProjection . intHigh
+
+data End
+  = EndPoint !Vertex !GLfloat
+  | EndLine  !Edge   !GLfloat
+    deriving Show
+
+endProjection :: End -> GLfloat
+endProjection (EndPoint _ p) = p
+endProjection (EndLine _ p)  = p
+
+-- | Test to see if an interval touches, or overlaps the boundary that it was
+-- derived from.
+intervalOverlap :: Interval -> Bool
+intervalOverlap int = withinZero pl || (pl < 0 && ph > 0)
+  where
+  pl = lowProjection  int
+  ph = highProjection int
+
+-- | Get the interval that bounds a circle when projected onto the line defined
+-- by the vertex and unit-vector.
+circleInterval :: Vertex -> Vector GLfloat
+               -> IORef (Point GLfloat) -> IORef GLfloat
+               -> IO Interval
+circleInterval p d cref rref = do
+  c <- readIORef cref
+  r <- readIORef rref
+  let rd = r *^ d
+      v  = c -. p
+      lv = v -^ rd
+      hv = v +^ rd
+  return Interval
+    { intLow  = EndPoint (zero .+^ lv) (lv <.> d)
+    , intHigh = EndPoint (zero .+^ hv) (hv <.> d)
+    }
+
+-- | Get the interval that bounds a polygon when projected onto the line
+-- defined by the vertex and unit-vector.
+polygonInterval :: Vertex -> Vector GLfloat -> Vertices -> IO Interval
+polygonInterval p d vs = do
+  (pl,il,ul)     <- minimalPoint p d vs
+  el@(Line vl _) <- getEdge vs il
+  let l | ul        = EndPoint vl pl
+        | otherwise = EndLine  el pl
+  (ph,ih,uh)     <- minimalPoint p (negV d) vs
+  eh@(Line vh _) <- getEdge vs ih
+  let h | uh        = EndPoint vh ph
+        | otherwise = EndLine  eh ph
+  return Interval
+    { intLow  = l
+    , intHigh = h
+    }
 
 -- | Find a minimal point on a polygon, relative to the axis provided.
 minimalPoint :: Vertex -> Vector GLfloat -> Vertices -> IO (GLfloat,Index,Bool)
@@ -262,7 +360,7 @@ minimalPoint p d vs = do
 
   -- the projection of points along the line defined by p and d.
   nd     = norm2 d
-  proj x = ((x -. p) <.> d) / nd
+  proj x = ((x -. p) <.> d)
 
   -- edges produce a unique value of False, as the contact isn't defined by a
   -- single point.
@@ -282,42 +380,3 @@ minimalPoint p d vs = do
          then loop (n+1) p' i' u'
          else loop (n+1) p  i  u
 
-data Interval = Interval
-  { intLow  :: !End
-  , intHigh :: !End
-  } deriving Show
-
-data End
-  = EndPoint !Vertex !GLfloat
-  | EndLine  !Edge   !GLfloat
-    deriving Show
-
-circleInterval :: Vertex -> Vector GLfloat
-               -> IORef (Point GLfloat) -> IORef GLfloat
-               -> IO Interval
-circleInterval p d cref rref = do
-  c <- readIORef cref
-  r <- readIORef rref
-  let rd = r *^ d
-      v  = c -. p
-      lv = v -^ rd
-      hv = v +^ rd
-  return Interval
-    { intLow  = EndPoint (zero .+^ lv) (lv <.> d)
-    , intHigh = EndPoint (zero .+^ hv) (hv <.> d)
-    }
-
-polygonInterval :: Vertex -> Vector GLfloat -> Vertices -> IO Interval
-polygonInterval p d vs = do
-  (pl,il,ul)     <- minimalPoint p d vs
-  el@(Line vl _) <- getEdge vs il
-  let l | ul        = EndPoint vl pl
-        | otherwise = EndLine  el pl
-  (ph,ih,uh)     <- minimalPoint p (negV d) vs
-  eh@(Line vh _) <- getEdge vs ih
-  let h | uh        = EndPoint vh ph
-        | otherwise = EndLine  eh ph
-  return Interval
-    { intLow  = l
-    , intHigh = h
-    }
