@@ -265,12 +265,7 @@ polygonPolygonCollision cref1 vs1 cref2 vs2 = do
   step i vs cvs = do
     e@(Line p _) <- getEdge vs i
     let d = unitV (normalV (lineV e))
-    int <- polygonInterval p d cvs
-    print e
-    print d
-    print p
-    print int
-    return int
+    polygonInterval p d cvs
 
   loop vs cvs i end int
     | i == end                  = return (Just int)
@@ -281,7 +276,7 @@ polygonPolygonCollision cref1 vs1 cref2 vs2 = do
          then loop vs cvs (i+1) end int'
          else loop vs cvs (i+1) end int
 
-test = join (shapeCollision <$> rect (Point 0 0) <*> rect (Point 1 1))
+test = join (shapeCollision <$> rect (Point 1 1) <*> rect (Point 2 2))
   where
   rect p = rectangle p 2 2
 
@@ -343,8 +338,8 @@ polygonInterval p d vs = do
         | otherwise = EndLine  el pl
   (ph,ih,uh)     <- minimalPoint p (negV d) vs
   eh@(Line vh _) <- getEdge vs ih
-  let h | uh        = EndPoint vh ph
-        | otherwise = EndLine  eh ph
+  let h | uh        = EndPoint vh (-ph)
+        | otherwise = EndLine  eh (-ph)
   return Interval
     { intLow  = l
     , intHigh = h
@@ -360,14 +355,15 @@ minimalPoint p d vs = do
 
   -- the projection of points along the line defined by p and d.
   nd     = norm2 d
-  proj x = ((x -. p) <.> d)
+  proj x = (x -. zero) <.> d
 
   -- edges produce a unique value of False, as the contact isn't defined by a
   -- single point.
   step i = do
     e@(Line a _) <- getEdge vs i
     let p      = proj a
-        unique = not (withinZero (lineV e <.> d))
+        v      = lineV e <.> d
+        unique = not (withinZero v)
     return (p,i,unique)
 
   len = Vec.length vs
