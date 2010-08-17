@@ -132,4 +132,4 @@ data Line a = Line !(Point a) !(Point a)
   deriving (Eq,Show)
 
 lineV :: Num a => Line a -> Vector a
-lineV (Line a b) = b -. a
+lineV (Line a b) = a -. b
