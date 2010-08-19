@@ -6,7 +6,7 @@ import Math.Utils
 -- Points ----------------------------------------------------------------------
 
 data Point a = Point !a !a
-  deriving (Show,Eq)
+  deriving (Show,Eq,Ord)
 
 instance HasZero a => HasZero (Point a) where
   zero               = Point zero zero

@@ -18,3 +18,7 @@ instance HasZero GLfloat where
   zero     = 0
   isZero 0 = True
   isZero _ = False
+
+withinZero :: GLfloat -> Bool
+withinZero z = abs z <= 0.0001
+

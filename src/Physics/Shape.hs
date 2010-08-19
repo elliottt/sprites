@@ -21,12 +21,14 @@ import Graphics
 import Math.AffinePlane
 import Math.Utils
 import Physics.AABB
+import Utils
 
 import Control.Applicative (Applicative(..),(<$>))
 import Control.Monad (when,zipWithM_,forM_,unless,join)
 import Data.IORef (IORef,newIORef,readIORef,writeIORef)
 import Data.Ord (comparing)
 import qualified Control.Monad.Primitive as Prim
+import qualified Data.Set                as Set
 import qualified Data.Vector.Mutable     as Vec
 
 
@@ -242,108 +244,87 @@ polygonCircleCollision :: IORef (Point GLfloat) -> Vertices
 polygonCircleCollision cref1 vs cref2 rref = do
   error "polygonCircleCollision"
 
+test = join (shapeCollision <$> rect (Point 0 0) <*> rect (Point 2 0))
+  where
+  rect p = rectangle p 2 2
+
 -- | Check for collision between two polygons
 polygonPolygonCollision :: IORef (Point GLfloat) -> Vertices
                         -> IORef (Point GLfloat) -> Vertices
                         -> IO (Maybe Collision)
-polygonPolygonCollision cref1 vs1 cref2 vs2 = do
+polygonPolygonCollision cref1 vs1 cref2 vs2 =
 
-  int1 <- check vs1 vs2
-  print int1
-
-  int2 <- check vs2 vs1
-  print int2
-
-  error "fail"
+  check vs1 vs2 >>=? \ (p0,i0,u0) ->
+  check vs2 vs1 >>=? \ (p1,i1,u1) -> do
+  cs <- if p0 > p1
+           then contact vs1 vs2 id   i0 p0
+           else contact vs2 vs1 negV i1 p1
+  print cs
+  error "polygonPolygonCollision"
 
   where
 
-  check vs cvs = do
-    int <- step 0 vs cvs
-    loop vs cvs 1 (Vec.length vs) int
+  contact vs poly k i p = do
+    e <- getEdge vs i
+    polygonContactPoints vs poly (k (lineV e)) p
+
+  check vs cvs = loop vs cvs 1 (Vec.length vs) =<< step 0 vs cvs
 
   step i vs cvs = do
     e@(Line p _) <- getEdge vs i
     let d = unitV (normalV (lineV e))
-    polygonInterval p d cvs
+    minimalPoint p d cvs
 
-  loop vs cvs i end int
-    | i == end                  = return (Just int)
-    | not (intervalOverlap int) = return Nothing
-    | otherwise                 = do
-      int' <- step i vs cvs
-      if lowProjection int' < lowProjection int
+  loop vs cvs i end int@(p,_,_)
+    | i == end  = return (Just int)
+    | p > 0     = return Nothing
+    | otherwise = do
+      int'@(p',_,_) <- step i vs cvs
+      if p < p'
          then loop vs cvs (i+1) end int'
          else loop vs cvs (i+1) end int
 
-test = join (shapeCollision <$> rect (Point 1 1) <*> rect (Point 2 2))
+data Contact = Contact
+  { conPoint   :: !Vertex
+  , conNormal  :: !(Vector GLfloat)
+  , conOverlap :: !GLfloat
+  } deriving (Show,Eq)
+
+instance Ord Contact where
+  compare = comparing conPoint
+
+-- | Generate a set of contact points between two polygons.
+polygonContactPoints :: Vertices -> Vertices -> Vector GLfloat -> GLfloat
+                     -> IO (Set.Set Contact)
+polygonContactPoints vs1 vs2 d z =
+  collect vs2 vs1 =<< collect vs1 vs2 Set.empty
   where
-  rect p = rectangle p 2 2
+  collect vs poly = loop 0
+    where
+    len = Vec.length vs
+    loop i ps
+      | i == len  = return ps
+      | otherwise = do
+        p <- getVertex vs i
+        b <- pointInPolygon p poly
+        if b
+           then loop (i+1) (Set.insert (Contact p d z) ps)
+           else loop (i+1) ps
 
--- Interval Finding ------------------------------------------------------------
-
-withinZero :: GLfloat -> Bool
-withinZero z = abs z <= 0.0001
-
-data Interval = Interval
-  { intLow  :: !End
-  , intHigh :: !End
-  } deriving Show
-
-lowProjection, highProjection :: Interval -> GLfloat
-lowProjection  = endProjection . intLow
-highProjection = endProjection . intHigh
-
-data End
-  = EndPoint !Vertex !GLfloat
-  | EndLine  !Edge   !GLfloat
-    deriving Show
-
-endProjection :: End -> GLfloat
-endProjection (EndPoint _ p) = p
-endProjection (EndLine _ p)  = p
-
--- | Test to see if an interval touches, or overlaps the boundary that it was
--- derived from.
-intervalOverlap :: Interval -> Bool
-intervalOverlap int = withinZero pl || (pl < 0 && ph > 0)
+-- | Determine if a point falls inside of a polygon.
+pointInPolygon :: Vertex -> Vertices -> IO Bool
+pointInPolygon v vs = loop 0
   where
-  pl = lowProjection  int
-  ph = highProjection int
-
--- | Get the interval that bounds a circle when projected onto the line defined
--- by the vertex and unit-vector.
-circleInterval :: Vertex -> Vector GLfloat
-               -> IORef (Point GLfloat) -> IORef GLfloat
-               -> IO Interval
-circleInterval p d cref rref = do
-  c <- readIORef cref
-  r <- readIORef rref
-  let rd = r *^ d
-      v  = c -. p
-      lv = v -^ rd
-      hv = v +^ rd
-  return Interval
-    { intLow  = EndPoint (zero .+^ lv) (lv <.> d)
-    , intHigh = EndPoint (zero .+^ hv) (hv <.> d)
-    }
-
--- | Get the interval that bounds a polygon when projected onto the line
--- defined by the vertex and unit-vector.
-polygonInterval :: Vertex -> Vector GLfloat -> Vertices -> IO Interval
-polygonInterval p d vs = do
-  (pl,il,ul)     <- minimalPoint p d vs
-  el@(Line vl _) <- getEdge vs il
-  let l | ul        = EndPoint vl pl
-        | otherwise = EndLine  el pl
-  (ph,ih,uh)     <- minimalPoint p (negV d) vs
-  eh@(Line vh _) <- getEdge vs ih
-  let h | uh        = EndPoint vh (-ph)
-        | otherwise = EndLine  eh (-ph)
-  return Interval
-    { intLow  = l
-    , intHigh = h
-    }
+  len = Vec.length vs
+  loop i
+    | i == len  = return True
+    | otherwise = do
+      e@(Line a _) <- getEdge vs i
+      let n = normalV (lineV e)
+          p = (v -. a) <.> n
+      if p < 0 || withinZero p
+         then loop (i+1)
+         else return False
 
 -- | Find a minimal point on a polygon, relative to the axis provided.
 minimalPoint :: Vertex -> Vector GLfloat -> Vertices -> IO (GLfloat,Index,Bool)
@@ -353,6 +334,8 @@ minimalPoint p d vs = do
 
   where
 
+  pd = proj p
+
   -- the projection of points along the line defined by p and d.
   nd     = norm2 d
   proj x = (x -. zero) <.> d
@@ -360,19 +343,18 @@ minimalPoint p d vs = do
   -- edges produce a unique value of False, as the contact isn't defined by a
   -- single point.
   step i = do
-    e@(Line a _) <- getEdge vs i
-    let p      = proj a
+    e@(Line _ a) <- getEdge vs (i-1)
+    let pj     = proj a
         v      = lineV e <.> d
         unique = not (withinZero v)
-    return (p,i,unique)
+    return (pj,i,unique)
 
   len = Vec.length vs
-  loop n p i u
-    | n == len  = return (p,i,u)
+  loop n pj i u
+    | n == len  = return (pj - pd,i,u)
     | otherwise = do
-      (p',i',u') <- step n
+      (pj',i',u') <- step n
       -- keep the stepped side if the contact was with an edge
-      if p' < p || p' == p && not u'
-         then loop (n+1) p' i' u'
-         else loop (n+1) p  i  u
-
+      if pj' < pj || pj' == pj && not u'
+         then loop (n+1) pj' i' u'
+         else loop (n+1) pj  i  u
