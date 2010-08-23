@@ -1,7 +1,6 @@
 module Physics.Body (
     PhysicalState(..)
   , staticBody, dynamicBody
-  , Physical(..)
   , psVelocity
 
   , moveBy
@@ -16,12 +15,12 @@ import Graphics
 import Math.AffinePlane
 import Math.Utils
 import Physics.AABB
-import Physics.Collision
+import Physics.Shape
 
-import Control.Monad (guard)
+import Control.Monad (guard,when)
 
 
-data PhysicalState a = PhysicalState
+data PhysicalState = PhysicalState
   { psTransform    :: !(Matrix GLfloat)
   , psAcceleration :: !(Vector GLfloat)
   , psMass         :: !GLfloat
@@ -31,39 +30,28 @@ data PhysicalState a = PhysicalState
   , psStatic       :: Bool
   , psResting      :: Bool
   , psDebug        :: Bool
-  , psData         :: a
-  } deriving Show
+  , psShape        :: Shape
+  }
 
-instance Render a => Render (PhysicalState a) where
+instance Render PhysicalState where
   render ps = do
-    --when (psDebug ps) (render (psAABB ps))
-    render (psData ps)
+    render (psShape ps)
+    when (psDebug ps) (render (psAABB ps))
 
-instance Collides a => Collides (PhysicalState a) where
-  collides a b = do
-    guard (aabbOverlap (psAABB a) (psAABB b))
-    collides (psData a) (psData b)
-
-class Physical a where
-  boundingBox :: a -> IO AABB
-  transform   :: Matrix GLfloat -> a -> IO ()
-  position    :: a -> IO (Point GLfloat)
-
-psVelocity :: PhysicalState a -> (Vector GLfloat)
+psVelocity :: PhysicalState -> (Vector GLfloat)
 psVelocity ps = Vector (mat02 t) (mat12 t)
   where
   t = psTransform ps
 
-moveBy :: Physical a
-       => Vector GLfloat -> PhysicalState a -> IO (PhysicalState a)
+moveBy :: Vector GLfloat -> PhysicalState -> IO PhysicalState
 moveBy (Vector x y) ps = do
-  transform (idM { mat02 = x, mat12 = y }) (psData ps)
-  bb' <- boundingBox (psData ps)
+  transformShape (idM { mat02 = x, mat12 = y }) (psShape ps)
+  bb' <- shapeAABB (psShape ps)
   return ps { psAABB = bb' }
 
-dynamicBody :: Physical a => a -> IO (PhysicalState a)
+dynamicBody :: Shape -> IO PhysicalState
 dynamicBody a = do
-  aabb <- boundingBox a
+  aabb <- shapeAABB a
   return PhysicalState
     { psTransform    = idM
     , psAcceleration = Vector 0 0
@@ -74,12 +62,12 @@ dynamicBody a = do
     , psResting      = False
     , psDebug        = False
     , psRestitution  = 1
-    , psData         = a
+    , psShape        = a
     }
 
-staticBody :: Physical a => a -> IO (PhysicalState a)
+staticBody :: Shape -> IO PhysicalState
 staticBody a = do
-  aabb <- boundingBox a
+  aabb <- shapeAABB a
   return PhysicalState
     { psTransform    = idM
     , psAcceleration = Vector 0 0
@@ -90,18 +78,17 @@ staticBody a = do
     , psResting      = False
     , psDebug        = False
     , psRestitution  = 1
-    , psData         = a
+    , psShape        = a
     }
 
-isStationary :: PhysicalState a -> Bool
+isStationary :: PhysicalState -> Bool
 isStationary ps = or
   [ psStatic ps
   , psResting ps
   , isZero (psAcceleration ps) && isZero (psTransform ps)
   ]
 
-stepPhysicalState :: Physical a
-                  => GLfloat -> PhysicalState a -> IO (PhysicalState a)
+stepPhysicalState :: GLfloat -> PhysicalState -> IO PhysicalState
 stepPhysicalState dt ps
   | isStationary ps = return ps
   | otherwise       = do
@@ -109,22 +96,22 @@ stepPhysicalState dt ps
     let t            = psTransform ps
         Vector dx dy = dt *^ psAcceleration ps
         t'           = t { mat02 = mat02 t + dx, mat12 = mat12 t + dy }
-    transform t (psData ps)
-    aabb' <- boundingBox (psData ps)
+    transformShape t (psShape ps)
+    aabb' <- shapeAABB (psShape ps)
     return ps
       { psAABB      = aabb'
       , psTransform = t'
       }
 
-applyImpulse :: Vector GLfloat -> PhysicalState a -> PhysicalState a
+applyImpulse :: Vector GLfloat -> PhysicalState -> PhysicalState
 applyImpulse (Vector x y) ps = ps
   { psTransform = t { mat02 = x, mat12 = y }
   }
   where
   t = psTransform ps
 
-setDebug :: Bool -> PhysicalState a -> PhysicalState a
+setDebug :: Bool -> PhysicalState -> PhysicalState
 setDebug b ps = ps { psDebug = b }
 
-setRestitution :: GLfloat -> PhysicalState a -> PhysicalState a
+setRestitution :: GLfloat -> PhysicalState -> PhysicalState
 setRestitution r ps = ps { psRestitution = r }

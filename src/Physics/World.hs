@@ -5,7 +5,6 @@ import Math.AffinePlane
 import Math.Utils
 import Physics.AABB
 import Physics.Body
-import Physics.Collision
 import Physics.Shape
 import Time
 
@@ -29,7 +28,7 @@ instance Render World where
 
 emptyWorld :: GLfloat -> GLfloat -> World
 emptyWorld w h = World
-  { worldBox         = AABB (Point (-w / 2) (h / 2)) (Point w h)
+  { worldBox         = AABB (Point (-w / 2) (h / 2)) w h
   , worldBodies      = []
   , worldGravity     = Nothing
   }

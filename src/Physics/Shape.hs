@@ -188,30 +188,24 @@ projectOnto' (SPolygon cref vs) u = do
   let a0 = proj x0
   loop a0 a0 1
 
-data Collision = Collision
-  { collisionIntersect :: !Intersection
-  , collisionOverlap   :: !GLfloat
-  , collisionNormal    :: !(Vector GLfloat)
-  } deriving (Eq,Show)
+data Contact = Contact
+  { conPoint   :: !Vertex
+  , conNormal  :: !(Vector GLfloat)
+  , conOverlap :: !GLfloat
+  } deriving (Show,Eq)
 
-invertCollision :: Collision -> Collision
-invertCollision c = c { collisionNormal = negV (collisionNormal c) }
-
-data Intersection
-  = IntersectPoint !(Point GLfloat)
-  | IntersectLine !(Line GLfloat)
-    deriving (Eq,Show)
+instance Ord Contact where
+  compare = comparing conPoint
 
 -- | Check for collision between two shapes.
-shapeCollision :: Shape -> Shape -> IO (Maybe Collision)
+shapeCollision :: Shape -> Shape -> IO (Maybe (Set.Set Contact))
 shapeCollision s1 s2 =
   case (s1,s2) of
     (SCircle cref1 rref1, SCircle cref2 rref2) ->
       circleCircleCollision cref1 rref1 cref2 rref2
 
-    (SCircle cref1 rref, SPolygon cref2 vs) -> do
-      mb <- polygonCircleCollision cref2 vs cref1 rref
-      return (invertCollision <$> mb)
+    (SCircle cref1 rref, SPolygon cref2 vs) ->
+      polygonCircleCollision cref2 vs cref1 rref
 
     (SPolygon cref1 vs, SCircle cref2 rref) ->
       polygonCircleCollision cref1 vs cref2 rref
@@ -222,7 +216,7 @@ shapeCollision s1 s2 =
 -- | Check for collision between two circles.
 circleCircleCollision :: IORef (Point GLfloat) -> IORef GLfloat
                       -> IORef (Point GLfloat) -> IORef GLfloat
-                      -> IO (Maybe Collision)
+                      -> IO (Maybe (Set.Set Contact))
 circleCircleCollision cref1 rref1 cref2 rref2 = do
   c1 <- readIORef cref1
   r1 <- readIORef rref1
@@ -233,16 +227,28 @@ circleCircleCollision cref1 rref1 cref2 rref2 = do
       v'      = unitV v
       overlap = d - norm v
       p       = c1 .+^ (r1 *^ v')
+      c       = Contact
+        { conPoint   = c1 .+^ ((r1 + overlap) *^ v')
+        , conNormal  = v'
+        , conOverlap = overlap
+        }
   if overlap >= 0
-     then return (Just (Collision (IntersectPoint p) overlap v'))
+     then return (Just (Set.singleton c))
      else return Nothing
 
 -- | Check for collision between a polygon and a circle
 polygonCircleCollision :: IORef (Point GLfloat) -> Vertices
                        -> IORef (Point GLfloat) -> IORef GLfloat
-                       -> IO (Maybe Collision)
+                       -> IO (Maybe (Set.Set Contact))
 polygonCircleCollision cref1 vs cref2 rref = do
-  error "polygonCircleCollision"
+  undefined
+
+minimalCirclePoint :: Vertex -> Vector GLfloat -> Point GLfloat -> GLfloat
+                   -> GLfloat
+minimalCirclePoint p d c r = pj - ((p -. zero) <.> d)
+  where
+  v  = (c -. zero) -^ (r *^ d)
+  pj = v <.> d
 
 test = join (shapeCollision <$> rect (Point 0 0) <*> rect (Point 2 0))
   where
@@ -251,20 +257,18 @@ test = join (shapeCollision <$> rect (Point 0 0) <*> rect (Point 2 0))
 -- | Check for collision between two polygons
 polygonPolygonCollision :: IORef (Point GLfloat) -> Vertices
                         -> IORef (Point GLfloat) -> Vertices
-                        -> IO (Maybe Collision)
+                        -> IO (Maybe (Set.Set Contact))
 polygonPolygonCollision cref1 vs1 cref2 vs2 =
 
   check vs1 vs2 >>=? \ (p0,i0,u0) ->
   check vs2 vs1 >>=? \ (p1,i1,u1) -> do
-  cs <- if p0 > p1
-           then contact vs1 vs2 id   i0 p0
-           else contact vs2 vs1 negV i1 p1
-  print cs
-  error "polygonPolygonCollision"
+  if p0 > p1
+     then contact vs1 vs2 id   i0 p0
+     else contact vs2 vs1 negV i1 p1
 
   where
 
-  contact vs poly k i p = do
+  contact vs poly k i p = Just <$> do
     e <- getEdge vs i
     polygonContactPoints vs poly (k (lineV e)) p
 
@@ -283,15 +287,6 @@ polygonPolygonCollision cref1 vs1 cref2 vs2 =
       if p < p'
          then loop vs cvs (i+1) end int'
          else loop vs cvs (i+1) end int
-
-data Contact = Contact
-  { conPoint   :: !Vertex
-  , conNormal  :: !(Vector GLfloat)
-  , conOverlap :: !GLfloat
-  } deriving (Show,Eq)
-
-instance Ord Contact where
-  compare = comparing conPoint
 
 -- | Generate a set of contact points between two polygons.
 polygonContactPoints :: Vertices -> Vertices -> Vector GLfloat -> GLfloat
