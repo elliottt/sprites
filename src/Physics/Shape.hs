@@ -15,6 +15,8 @@ module Physics.Shape (
 
     -- * Collision Checking
   , shapeAABB
+  , shapeCollision
+  , Contact(..)
   ) where
 
 import Graphics

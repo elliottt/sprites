@@ -110,8 +110,18 @@ applyImpulse (Vector x y) ps = ps
   where
   t = psTransform ps
 
+setTransform :: Matrix GLfloat -> PhysicalState -> PhysicalState
+setTransform mat ps = ps { psTransform = mat }
+
+addTransform :: Matrix GLfloat -> PhysicalState -> PhysicalState
+addTransform mat ps = ps { psTransform = addMatrix (psTransform ps) mat }
+
 setDebug :: Bool -> PhysicalState -> PhysicalState
 setDebug b ps = ps { psDebug = b }
 
 setRestitution :: GLfloat -> PhysicalState -> PhysicalState
 setRestitution r ps = ps { psRestitution = r }
+
+-- | Given two bodies, calculate the resulting velocity on the first given the
+-- contact set.
+

@@ -125,6 +125,14 @@ transformPoint m (Point a b) = o .+^ ((a *^ r1) +^ (b *^ r2))
   r2 = Vector (mat10 m) (mat11 m)
   o  = Point (mat02 m) (mat12 m)
 
+addMatrix :: Num a => Matrix a -> Matrix a -> Matrix a
+addMatrix a b = Matrix
+  { mat00 = mat00 a + mat00 b, mat01 = mat01 a + mat01 b
+  , mat02 = mat02 a + mat02 b
+  , mat10 = mat10 a + mat10 b, mat11 = mat11 a + mat11 b
+  , mat12 = mat12 a + mat12 b
+  }
+
 
 -- Lines -----------------------------------------------------------------------
 

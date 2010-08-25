@@ -11,15 +11,16 @@ import Time
 import Control.Monad (guard)
 import Data.List (partition)
 import Data.Maybe (fromMaybe,mapMaybe)
+import qualified Data.Set as Set
 
 import Debug.Trace
 
 
-type Body = PhysicalState Shape
+type Body = PhysicalState
 
 data World = World
   { worldBox         :: !AABB
-  , worldBodies      :: [PhysicalState Shape]
+  , worldBodies      :: [Body]
   , worldGravity     :: Maybe (Vector GLfloat)
   }
 
@@ -28,66 +29,39 @@ instance Render World where
 
 emptyWorld :: GLfloat -> GLfloat -> World
 emptyWorld w h = World
-  { worldBox         = AABB (Point (-w / 2) (h / 2)) w h
+  { worldBox         = AABB (Point 0 h) w h
   , worldBodies      = []
   , worldGravity     = Nothing
   }
 
-stepWorld :: Interval -> World -> World
-stepWorld dt0 w = w
-  { worldBodies = ds' ++ ss
-  }
-  where
-  dt          = fromIntegral dt0 / 1000
-  (ds,ss)     = collisions w
-  ds'         = mapMaybe step ds
-  step (p,cs) = do
-    let resolve (c,q) = resolveCollision w c p q
-    case map resolve cs of
+-- | Move the world forward
+stepWorld :: Interval -> World -> IO World
+stepWorld dt0 w = do
+  let dt = fromIntegral dt0 / 1000
+  handleCollisions dt w
 
-      [] -> do
-        let p' = stepPhysicalState dt p
-        guard (psAABB p' `aabbOverlap` worldBox w)
-        return p'
+handleCollisions :: GLfloat -> World -> IO World
+handleCollisions dt w = do
+  (ds,ss) <- collisions w
+  let step (b1,b2,cs) = do
+        let resolve c = resolveCollision w c b1 b2
+        case map resolve (Set.toList cs) of
 
-      vs -> do
-        let (i,v') = foldl1 (\(x,y) (a,b) -> (x +^ a, y +^ b)) vs
-        let p'     = stepPhysicalState dt
-                   $ applyImpulse v'
-                   $ moveBy i p
-        guard (psAABB p' `aabbOverlap` worldBox w)
-        return p'
+          [] -> stepPhysicalState dt b1
 
--- | Turn a collision into a displacement vector, and a new velocity.
-resolveCollision :: World -> Collision -> Body -> Body
-                 -> (Vector GLfloat,Vector GLfloat)
-resolveCollision w c p q = debug (disp,v')
-  where
-  disp  = collisionOverlap c *^ n
-  n     = collisionNormal c
-  n'    = normalV n
-  v     = psVelocity p
-  nv    = n <.> v
-  nperp = projAlong v n'
-  rest  = psRestitution p
-  v'    = nperp -^ (rest * nv *^ n)
+          -- calculate the impulse force, and apply it
+          vs -> stepPhysicalState dt b1
 
-  debug r | psDebug p = show c `trace` r
-          | otherwise = r
+  ds' <- mapM step ds
+  return w { worldBodies = ss ++ ds' }
 
-collisions :: World -> ([(Body,[(Collision,Body)])], [Body])
-collisions w = loop ds [] []
-  where
-  (ss,ds) = partition isStationary (worldBodies w)
+-- | Turn a collision into a new velocity.
+resolveCollision :: World -> Contact -> Body -> Body -> Vector GLfloat
+resolveCollision w c b1 b2 = error "resolveCollision"
 
-  -- collect collisions
-  loop []     _  rs = (rs,ss)
-  loop (a:as) bs rs = loop as (a:bs) (r:rs)
-    where
-    r      = (a, mapMaybe step (as ++ bs ++ ss))
-    step s = do
-      c <- collides a s
-      return (c,s)
+-- | Partition out collisions, and static bodies.
+collisions :: World -> IO ([(Body,Body,Set.Set Contact)], [Body])
+collisions w = error "collisions"
 
 addBody :: Body -> World -> World
 addBody b w = w { worldBodies = b' : worldBodies w }
