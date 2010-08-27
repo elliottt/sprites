@@ -127,7 +127,7 @@ transformShape mat (SPolygon ref vs) = do
   let move = transformPoint mat
   c <- readIORef ref
   writeIORef ref $! move c
-  forM_ [0 .. Vec.length vs] $ \ i -> do
+  forM_ [0 .. Vec.length vs - 1] $ \ i -> do
     p <- Vec.read vs i
     Vec.write vs i $! move p
 
@@ -145,7 +145,7 @@ polyEdges vs = loop 0
   where
   len = Vec.length vs
   loop n | n >= len  = return []
-         | otherwise = (:) <$> getEdge vs n <*> loop (n-1)
+         | otherwise = (:) <$> getEdge vs n <*> loop (n+1)
 
 
 -- Collision Checking ----------------------------------------------------------

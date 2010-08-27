@@ -26,7 +26,7 @@ $(GHC_DIR)/Test-depend : $(GHC_DIR)
 
 Test : cbits/sdl-opengl.o $(GHC_DIR)/Test-depend $(Test_HS_OBJS) Test.hs
 	$(GHC) -main-is Test.main -c Test.hs
-	$(GHC) $(Test_HS_LIBS) -main-is Test:main \
+	$(GHC) $(Test_HS_LIBS) -main-is Test:main -threaded \
 	    -o $@ $(Test_HS_OBJS) ghc/Test.o cbits/sdl-opengl.o
 
 clean_Test :

@@ -20,14 +20,14 @@ main = do
   square <- dynamicBody =<< rectangle (Point 0 5) 1 1
   s2     <- dynamicBody =<< rectangle (Point 2 5) 1 1
   let world = (emptyWorld 1000 1000)
-        { worldGravity     = Just (Vector 0 (-0.1))
+        { worldGravity     = Just (Vector 0 (-0.5))
         }
 
   ref <- newIORef $ addBody ground { psStatic = True }
                   $ addBody wall   { psStatic = True }
                   $ addBody (setDebug True $ applyImpulse (Vector 0.01 0)
                                            $ setRestitution 0.8 square)
-                  -- $ addBody s2
+                  $ addBody s2
                     world
 
   withEventManager $ \em -> do
@@ -38,7 +38,7 @@ main = do
 
     em `listen` \ QuitEvent -> exitSuccess
 
-    em `listen` \ (TickEvent now delta) -> do
+    em `listen` \ t@(TickEvent now delta) -> do
       w' <- stepWorld delta =<< readIORef ref
       writeIORef ref w'
 
