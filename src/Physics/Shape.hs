@@ -271,8 +271,9 @@ polygonPolygonCollision cref1 vs1 cref2 vs2 =
   where
 
   contact vs poly k i p = Just <$> do
-    e <- getEdge vs i
-    polygonContactPoints vs poly (k (lineV e)) p
+    e <- getEdge vs (i-1)
+    let d = unitV (normalV (lineV e))
+    polygonContactPoints vs poly (k d) p
 
   check vs cvs = loop vs cvs 1 (Vec.length vs) =<< step 0 vs cvs
 

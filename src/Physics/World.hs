@@ -8,7 +8,7 @@ import Physics.Body
 import Physics.Shape
 import Time
 
-import Control.Monad (guard)
+import Control.Monad (guard,when)
 import Data.List (partition)
 import Data.Maybe (fromMaybe,mapMaybe,catMaybes)
 import qualified Data.Set as Set
@@ -54,11 +54,17 @@ handleCollisions dt w = do
           [] -> stepPhysicalState dt b1
 
           -- calculate the impulse force, and apply it
-          vs -> stepPhysicalState dt b1
+          vs -> do
+            let v = foldl1 (+^) vs
+            when (psDebug b1) $ do
+              putStr "Impulse: "
+              print v
+            stepPhysicalState dt (applyImpulse v b1)
 
   ds'' <- mapM step ds'
   return w { worldBodies = ss ++ ds'' }
 
+-- | Step the velocities of all the bodies in the world.
 stepVelocities :: GLfloat -> World -> World
 stepVelocities dt w = w
   { worldBodies = map (adjustVelocity dt) (worldBodies w)
@@ -66,7 +72,22 @@ stepVelocities dt w = w
 
 -- | Turn a collision into a new velocity.
 resolveCollision :: World -> Body -> Body -> Contact -> Vector GLfloat
-resolveCollision w b1 b2 c = error "resolveCollision"
+resolveCollision w b1 b2 c = debug
+  where
+  n     = conNormal c
+  n'    = normalV n
+  v     = psVelocity b1
+  nv    = n <.> v
+  nperp = projAlong v n'
+  rest  = min (psRestitution b1) (psRestitution b2)
+  v'    = nperp -^ (rest * nv *^ n)
+
+  debug | psDebug b1 = trace (show c)
+                     $ trace (show v)
+                     $ trace (show v')
+                     $ trace (show rest)
+                     $ v'
+        | otherwise  = v'
 
 -- | Partition out collisions, and static bodies.
 collisions :: [Body] -> [Body] -> IO [(Body,[(Body,Set.Set Contact)])]
